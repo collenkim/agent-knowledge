@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.data/
+*.sqlite
+*.sqlite-*
+.cache/
+logs/
+*.log
+.env
+.env.*
+config/sources.yaml

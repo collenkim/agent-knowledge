@@ -1,0 +1,23 @@
+# 평가 전용 작업 공간이다. 아래 원본은 모두 테스트용 자료이며 실제 프로젝트 정책이 아니다.
+schemaVersion: 1
+sources:
+  - id: sample-shared
+    project: sample-shared
+    include: ['knowledge/**/*.md']
+    exclude: ['knowledge/decisions/**']
+    defaultKind: responsibility
+  - id: sample-orders
+    project: sample-orders
+    include: ['docs/**/*.md']
+    exclude: ['docs/decisions/**']
+    defaultKind: reference
+    rules:
+      - match: docs/architecture.md
+        kind: architecture
+        status: confirmed_policy
+        basis: 'fixture operator statement: 샘플 구조 문서는 운영자가 확정했다고 가정한다'
+  - id: sample-payments
+    project: sample-payments
+    include: ['docs/**/*.md']
+    exclude: ['docs/decisions/**']
+    defaultKind: reference

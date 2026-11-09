@@ -1,0 +1,27 @@
+# 복사해서 config/sources.yaml로 쓴다. 상대 경로의 기준은 이 설정 파일의 위치다.
+schemaVersion: 1
+database: {path: ../.data/knowledge.sqlite}
+index: {retainGenerations: 5, maxFileBytes: 1048576}   # retainGenerations는 활성 세대를 포함한 1 이상의 정수다
+sources:
+  - id: order-api            # /^[a-z0-9][a-z0-9._-]{0,63}$/, 중복 불가
+    project: order-api       # 형식은 id와 같고 여러 원본이 같은 프로젝트를 공유할 수 있다
+    path: ../../order-api    # 절대 경로 또는 이 파일 기준 상대 경로, Git 최상위여야 한다
+    ref: HEAD
+    include: ['docs/**/*.md', 'doc/**/*.md', 'README.md']
+    exclude: []
+    defaultKind: reference
+    rules:                   # 먼저 일치한 규칙 하나만 적용한다
+      - match: 'doc/architecture.md'
+        kind: architecture
+        # 경고: 규칙의 status와 basis는 특정 문서에 대해 운영자가 의도적으로 쓰는 선언이다.
+        # 쓰면 그 문서의 항목이 원본 근거를 해석하지 않고 confirmed:true가 되므로 아래 값을 그대로 풀어 쓰지 않는다.
+        # 문서를 직접 확인한 경우에만 그 문서를 match로 지정하고 basis에 실제 이유를 적는다.
+        # status: confirmed_policy   # confirmed_policy/verified_experience에는 basis가 필수다
+        # basis: '이 문서를 확정으로 보는 실제 이유'
+        # mandatory: true            # 검색어와 무관하게 필수 자료로 포함한다
+  - id: shared-knowledge
+    project: shared
+    path: ..
+    ref: HEAD
+    include: ['knowledge/**/*.md']
+    defaultKind: responsibility

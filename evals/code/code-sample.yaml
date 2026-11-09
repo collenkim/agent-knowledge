@@ -1,0 +1,153 @@
+# code 프로필 평가 사례다. 기대값은 evals/fixtures/sample-workspace의 테스트용 자료를 docs/의 규칙에 맞춰 적었다.
+schemaVersion: 1
+suite: code-sample
+profile: code
+workspace: ../fixtures/sample-workspace
+cases:
+  - id: C-01-business-rule-for-implement
+    query: 주문 취소 가능 기간
+    scope: {projects: [sample-orders]}
+    task: {phase: implement}
+    expect:
+      status: ok
+      items:
+        - sample-orders:docs/business-rules.md#BR-001
+      locations:
+        - {path: docs/business-rules.md, startLine: 9, endLine: 19, sourceId: sample-orders}
+      sections:
+        rules: [sample-orders:docs/business-rules.md#BR-001]
+        mandatory: [sample-orders:docs/policies.md#POL-101]
+
+  - id: C-02-explicit-key-observed-behavior
+    query: BR-002
+    scope: {projects: [sample-orders]}
+    expect:
+      items:
+        - sample-orders:docs/business-rules.md#BR-002
+      # 코드에서 관찰한 동작은 확정 정책이 아니다
+      unconfirmed:
+        - sample-orders:docs/business-rules.md#BR-002
+
+  - id: C-03-code-path-lookup-with-backslash
+    scope: {projects: [sample-orders]}
+    task: {paths: ['src\orders\cancel.ts']}
+    expect:
+      status: ok
+      items:
+        - sample-orders:docs/business-rules.md#BR-001
+
+  - id: C-04-out-of-scope-contract-excluded
+    query: 결제 승인 API 계약
+    scope: {projects: [sample-orders]}
+    expect:
+      status: ok
+      items:
+        - sample-orders:docs/dependencies.md#DEP-001
+      absent:
+        - sample-payments:docs/contracts/payment-api.md#CON-200
+
+  - id: C-05-allowed-contract-by-item-id
+    query: 결제 승인 API 계약
+    scope:
+      projects: [sample-orders]
+      allowedLinks:
+        - project: sample-payments
+          kinds: [contract]
+          itemIds: ['sample-payments:docs/contracts/payment-api.md#CON-200']
+    expect:
+      status: ok
+      items:
+        - sample-payments:docs/contracts/payment-api.md#CON-200
+      sections:
+        contracts: [sample-payments:docs/contracts/payment-api.md#CON-200]
+      absent:
+        - sample-payments:docs/contracts/payment-api.md#결제-api-계약
+
+  - id: C-06-phase-excludes-convention
+    query: 오류 코드 명명
+    scope: {projects: [sample-orders]}
+    task: {phase: test}
+    expect:
+      status: ok
+      # 단계가 맞지 않는 관례는 빠져도 필수 자료는 남는다
+      items:
+        - sample-orders:docs/policies.md#POL-101
+      absent:
+        - sample-orders:docs/conventions.md#오류-코드-명명-규칙
+
+  - id: C-07-verification-method
+    query: 통합 테스트 실행
+    scope: {projects: [sample-orders]}
+    task: {phase: test}
+    expect:
+      items:
+        - sample-orders:docs/test-strategy.md#통합-테스트-실행
+      locations:
+        - {path: docs/test-strategy.md, startLine: 9, endLine: 15, sourceId: sample-orders}
+      sections:
+        verification: [sample-orders:docs/test-strategy.md#통합-테스트-실행]
+
+  - id: C-08-past-fix-case
+    query: 주문 중복 생성 수정
+    scope: {projects: [sample-orders]}
+    expect:
+      items:
+        - sample-orders:docs/fixes.md#주문-중복-생성-수정-사례
+      sections:
+        cases: [sample-orders:docs/fixes.md#주문-중복-생성-수정-사례]
+
+  - id: C-09-korean-particle-and-declared-conflict
+    query: 배송비를 면제
+    scope: {projects: [sample-orders]}
+    expect:
+      items:
+        - sample-orders:docs/business-rules.md#BR-005
+        - sample-orders:docs/business-rules.md#BR-006
+      unconfirmed:
+        - sample-orders:docs/business-rules.md#BR-005
+        - sample-orders:docs/business-rules.md#BR-006
+
+  - id: C-10-alias-explicit-key
+    query: 취소기한
+    scope: {projects: [sample-orders]}
+    expect:
+      items:
+        - sample-orders:docs/business-rules.md#BR-001
+
+  - id: C-11-kind-filter
+    query: 주문 통합 테스트
+    scope: {projects: [sample-orders]}
+    filters: {kinds: [test-strategy]}
+    expect:
+      items:
+        - sample-orders:docs/test-strategy.md#통합-테스트-실행
+      absent:
+        - sample-orders:docs/fixes.md#주문-중복-생성-수정-사례
+
+  - id: C-12-requires-single-project
+    query: 결제
+    scope: {projects: [sample-orders, sample-payments]}
+    expect:
+      error: invalid-scope
+
+  - id: C-13-link-kind-above-profile-ceiling
+    query: 결제
+    scope:
+      projects: [sample-orders]
+      allowedLinks:
+        - {project: sample-payments, kinds: [policy]}
+    expect:
+      error: invalid-scope
+
+  - id: C-14-unknown-commit-source
+    query: 결제
+    scope: {projects: [sample-orders]}
+    version: {commits: {sample-unknown: abcdef1}}
+    expect:
+      error: invalid-scope
+
+  - id: C-15-unsearchable-query
+    query: '!!!'
+    scope: {projects: [sample-orders]}
+    expect:
+      error: invalid-request

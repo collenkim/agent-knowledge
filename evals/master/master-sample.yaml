@@ -1,0 +1,152 @@
+# master 프로필 평가 사례다. 기대값은 evals/fixtures/sample-workspace의 테스트용 자료를 docs/의 규칙에 맞춰 적었다.
+schemaVersion: 1
+suite: master-sample
+profile: master
+workspace: ../fixtures/sample-workspace
+cases:
+  - id: M-01-system-map
+    query: 시스템 지도 프로젝트 구성
+    scope: {projects: [sample-shared]}
+    expect:
+      status: ok
+      items:
+        - sample-shared:knowledge/system-map.md#프로젝트-구성
+        - sample-shared:knowledge/system-map.md#샘플-시스템-지도
+      locations:
+        - {path: knowledge/system-map.md, startLine: 11, endLine: 14, sourceId: sample-shared}
+      sections:
+        system: [sample-shared:knowledge/system-map.md#프로젝트-구성]
+      # master 프로필이어도 요청하지 않은 프로젝트는 검색하지 않는다
+      absent:
+        - sample-orders:docs/architecture.md#모듈-구성
+
+  - id: M-02-cross-project-dependency
+    query: 결제 승인 API 계약 의존
+    scope:
+      projects: [sample-orders]
+      allowedLinks:
+        - {project: sample-payments}
+    expect:
+      status: ok
+      items:
+        - sample-orders:docs/dependencies.md#DEP-001
+        - sample-payments:docs/contracts/payment-api.md#CON-200
+      sections:
+        dependencies: [sample-orders:docs/dependencies.md#DEP-001]
+        contracts: [sample-payments:docs/contracts/payment-api.md#CON-200]
+      # 연결 기본 종류는 contract/dependency/api-catalog라서 결제 쪽 정책은 들어오면 안 된다
+      absent:
+        - sample-payments:docs/policies.md#POL-200
+
+  - id: M-03-mandatory-without-text-match
+    query: 전혀무관한어휘조합
+    scope: {projects: [sample-orders]}
+    expect:
+      status: ok
+      items:
+        - sample-orders:docs/policies.md#POL-101
+        - sample-orders:docs/dependencies.md#DEP-001
+      locations:
+        - {path: docs/policies.md, startLine: 16, endLine: 22, sourceId: sample-orders}
+      sections:
+        mandatory: [sample-orders:docs/policies.md#POL-101]
+        dependencies: [sample-orders:docs/dependencies.md#DEP-001]
+      absent:
+        - sample-payments:docs/policies.md#POL-200
+
+  - id: M-04-handoff-case
+    query: 결제 승인 연동 인계
+    scope: {projects: [sample-orders]}
+    expect:
+      status: ok
+      items:
+        - sample-orders:docs/handoff.md#결제-승인-연동-인계-사례
+      locations:
+        - {path: docs/handoff.md, startLine: 9, endLine: 14, sourceId: sample-orders}
+      sections:
+        cases: [sample-orders:docs/handoff.md#결제-승인-연동-인계-사례]
+
+  - id: M-05-unconfirmed-and-default-deprecated-exclusion
+    query: 메일 장바구니 배송비
+    scope: {projects: [sample-orders]}
+    expect:
+      status: ok
+      items:
+        - sample-orders:docs/business-rules.md#BR-003
+        - sample-orders:docs/business-rules.md#BR-005
+        - sample-orders:docs/business-rules.md#BR-006
+        - sample-orders:docs/business-rules.md#BR-007
+      # 미확인과 양쪽 충돌(확정 선언 포함)은 확정 근거로 표시되면 안 된다
+      unconfirmed:
+        - sample-orders:docs/business-rules.md#BR-003
+        - sample-orders:docs/business-rules.md#BR-005
+        - sample-orders:docs/business-rules.md#BR-006
+      absent:
+        - sample-orders:docs/business-rules.md#BR-004
+
+  - id: M-06-deprecated-only-when-requested
+    query: 메일
+    scope: {projects: [sample-orders]}
+    filters: {statuses: [deprecated]}
+    expect:
+      items:
+        - sample-orders:docs/business-rules.md#BR-004
+      unconfirmed:
+        - sample-orders:docs/business-rules.md#BR-004
+      absent:
+        - sample-orders:docs/business-rules.md#BR-007
+
+  - id: M-07-linked-policy-when-kind-allowed
+    query: 결제 승인 한도
+    scope:
+      projects: [sample-orders]
+      allowedLinks:
+        - {project: sample-payments, kinds: [policy]}
+    expect:
+      status: ok
+      items:
+        - sample-payments:docs/policies.md#POL-200
+      sections:
+        mandatory: [sample-payments:docs/policies.md#POL-200]
+      absent:
+        - sample-payments:docs/contracts/payment-api.md#CON-200
+
+  - id: M-08-generation-pin
+    query: 결제 승인 연동 인계
+    scope: {projects: [sample-orders]}
+    version: {generation: 1}
+    expect:
+      items:
+        - sample-orders:docs/handoff.md#결제-승인-연동-인계-사례
+
+  - id: M-09-no-results
+    query: 전혀무관한어휘조합
+    scope: {projects: [sample-shared]}
+    expect:
+      status: no-results
+
+  - id: M-10-unknown-project
+    query: 결제
+    scope: {projects: [sample-unknown]}
+    expect:
+      error: invalid-scope
+
+  - id: M-11-missing-generation
+    query: 결제
+    scope: {projects: [sample-orders]}
+    version: {generation: 99}
+    expect:
+      error: index-missing
+
+  - id: M-12-commit-not-indexed
+    query: 결제
+    scope: {projects: [sample-orders]}
+    version: {commits: {sample-orders: abcdef1}}
+    expect:
+      error: index-missing
+
+  - id: M-13-unsearchable-query
+    query: '!!!'
+    scope: {projects: [sample-orders]}
+    expect:
+      error: invalid-request
