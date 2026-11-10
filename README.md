@@ -50,11 +50,11 @@ node dist/src/cli/main.js search --profile master --project order-api --project 
 node dist/src/cli/main.js get --id "<items[].id 값>" --profile code --project order-api --pretty
 ```
 
-`--response-version 2`나 요청의 `responseVersion: 2`를 주면 색인 식별자·항목 참조·설정 해시·출력 예산 등이 있는 형식 2가 나온다. 주지 않으면 이전과 같은 형식 1이다. 소비자 연결에 쓰는 명령은 다음과 같다.
+`--response-version 2`나 요청의 `responseVersion: 2`를 주면 색인 식별자·항목 참조·설정 해시·출력 예산 등이 있는 형식 2가 나온다. 주지 않으면 형식 1이다. 소비자 연결에 쓰는 명령은 다음과 같다.
 
 ```
 node dist/src/cli/main.js capabilities
-node dist/src/cli/main.js index --response-version 2 --lease-holder mission:M-1
+node dist/src/cli/main.js index --response-version 2 --lease-holder master-agent:M-1
 node dist/src/cli/main.js verify --request refs.json
 node dist/src/cli/main.js lease release --lease-id <ID>
 ```
@@ -63,7 +63,7 @@ node dist/src/cli/main.js lease release --lease-id <ID>
 
 ### 업그레이드
 
-이 버전의 `index`는 DB 스키마를 2로 올린다. 마이그레이션은 한 방향이며 이전 빌드는 올린 DB를 읽지 못한다. 올리기 전에 DB 파일을 복사해 두거나, 되돌릴 때 이전 빌드로 새 DB에 다시 색인한다. 자세한 내용은 [docs/knowledge-model.md](docs/knowledge-model.md#스키마와-마이그레이션)에 있다.
+`index`는 스키마 1 DB를 스키마 2로 마이그레이션한다. 마이그레이션은 한 방향이며 스키마 1만 읽는 빌드는 올린 DB를 읽지 못한다. 올리기 전에 DB 파일을 복사해 두거나, 되돌릴 때 그 빌드로 새 DB에 다시 색인한다. 자세한 내용은 [docs/knowledge-model.md](docs/knowledge-model.md#스키마와-마이그레이션)에 있다.
 
 ## 평가
 
@@ -79,7 +79,7 @@ npm run eval:ranking
 
 `evals/ranking`의 순위 평가 묶음을 `evals/ranking-variants.yaml`의 변형(legacy, BM25, 종류 가중치, 조각)마다 실행해 고정 상위 10개의 Recall@5·10, MRR과 문맥 포함률을 따로 낸다. 자료는 `evals/fixtures/ranking-workspace`의 합성 자료다. 실제 문서 평가 묶음은 저장소 밖에 두고 `eval --suite <경로> --config <설정> --db <DB> --record <디렉터리>`로 돌린다. 형식과 규칙은 [docs/retrieval.md](docs/retrieval.md#순위-평가형식-2-묶음)에 있다.
 
-## 이번 버전의 구현 범위와 한계
+## 구현 범위와 한계
 
 항목별 상태는 [docs/scope.md](docs/scope.md#구현-범위)에 있다.
 
@@ -91,7 +91,7 @@ npm run eval:ranking
 
 - 커밋하지 않은 변경은 결과에 반영되지 않는다.
 - 검색은 키워드 방식이다. 한국어는 조사 제거와 음절 바이그램으로 처리하며 형태소 분석을 하지 않는다. 벡터 검색 품질은 측정하지 않았다.
-- 기본 순위는 이전과 같은 방식이다. BM25와 조각 단위 점수는 요청으로 고를 수 있고, 합성 자료로만 비교했다.
+- 기본 순위는 `legacy` 방식이다. BM25와 조각 단위 점수는 요청으로 고를 수 있고, 합성 자료로만 비교했다.
 - 적용 조건 문장은 기록해서 돌려주기만 하고 자동으로 판정하지 않는다.
 - 상태와 충돌은 작성자의 선언, 운영자 규칙, 해석 가능한 근거 참조, 명시적 대체 선언으로만 정한다. 정책과 코드의 차이를 내용으로 추론하지 않는다. 판정 규칙은 [docs/knowledge-model.md](docs/knowledge-model.md#상태)에 있다.
 

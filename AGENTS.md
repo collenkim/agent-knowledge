@@ -20,9 +20,9 @@
 | `src/cli/`, `src/errors.ts`, `src/index.ts`, `src/util/package-info.ts` | [docs/retrieval.md](docs/retrieval.md) |
 | `src/evaluation/`(`ranking.ts`, `ranking-suite.ts` 포함), `evals/` | [docs/retrieval.md](docs/retrieval.md) |
 | `src/adapters/`, `compose.yaml` | [docs/scope.md](docs/scope.md) |
-| 응답 형식 2의 참조·재현 식별값·세대 고정·임대의 소비자 계약 | [docs/integration.md](docs/integration.md) |
+| 응답 형식 2의 참조·재현 식별값·세대 고정·임대의 소비자 계약, 인계 형식, `docs/contract/`, `tests/contract.ts`, `tests/handoff.ts` | [docs/integration.md](docs/integration.md) |
 
-코드를 바꾸면 대응 문서를 같은 변경에서 고친다. 사실 하나는 문서 한 곳에만 적고 다른 곳에서는 링크한다. `tests/docs.test.ts`는 구현된 CLI 명령이나 `ErrorCode`가 [docs/retrieval.md](docs/retrieval.md)에 없을 때, 표의 종료 코드 값이 다를 때, 상대 링크의 대상 파일이 없을 때, 문서 진단 코드·건너뛴 이유·충돌 사유가 [docs/knowledge-model.md](docs/knowledge-model.md)에 없을 때 실패한다. 문서에 남은 오래된 명령이나 코드, 링크의 앵커는 검사하지 않으므로 직접 확인한다.
+코드를 바꾸면 대응 문서를 같은 변경에서 고친다. 사실 하나는 문서 한 곳에만 적고 다른 곳에서는 링크한다. `tests/docs.test.ts`는 구현된 CLI 명령이나 `ErrorCode`가 [docs/retrieval.md](docs/retrieval.md)에 없을 때, 표의 종료 코드 값이 다를 때, 상대 링크의 대상 파일이 없을 때, 문서 진단 코드·건너뛴 이유·충돌 사유가 [docs/knowledge-model.md](docs/knowledge-model.md)에 없을 때 실패한다. 문서에 남은 오래된 명령이나 코드, 링크의 앵커는 검사하지 않으므로 직접 확인한다. `tests/contract-examples.test.ts`는 `docs/contract/`의 예제를 실제 CLI로 다시 실행하므로, 응답이나 fixture를 바꾸면 예제도 같은 변경에서 고친다.
 
 ## 개발과 검증 명령
 

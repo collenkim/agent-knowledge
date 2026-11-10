@@ -1,0 +1,913 @@
+{
+  "schema": "agent-knowledge.contract-example",
+  "schemaVersion": 1,
+  "title": "근거 보존: 임무 하나의 임대 둘, 옛 임대 해제, 만료, 재획득, GC 뒤 실패, 활성화하지 않은 세대",
+  "fixture": {
+    "workspace": "evals/fixtures/ranking-workspace",
+    "retainGenerations": 1
+  },
+  "notes": [
+    "docs/integration.md의 '근거 보존과 인계 수명'에 대응하는 정본 예제다. GC를 빨리 보이려고 retainGenerations를 1로 둔다.",
+    "보유자 이름은 임무마다 하나(master-agent:<missionId>)이고 임대는 leaseId로 가른다. <lease-id:단계 ID>는 그 단계에서 얻은 임대 ID다. 임대는 세대 보호 표시이며 작업 상태·승인·완료를 담지 않는다.",
+    "만료·GC 뒤의 실패는 모두 식별할 수 있는 코드로 끝나고, 어느 단계에서도 활성 세대로 바꿔 답하지 않는다."
+  ],
+  "steps": [
+    {
+      "id": "lease-a",
+      "note": "처음 분석·계획의 임대. 임무 상태에 leaseId를 묶음마다 저장한다.",
+      "argv": [
+        "lease",
+        "acquire",
+        "--holder",
+        "master-agent:mission-0002",
+        "--ttl",
+        "3600",
+        "--index-id",
+        "<index-id>"
+      ],
+      "exitCode": 0,
+      "stdout": {
+        "schema": "agent-knowledge.lease",
+        "schemaVersion": 1,
+        "ok": true,
+        "status": "ok",
+        "action": "acquire",
+        "indexId": "<index-id>",
+        "lease": {
+          "leaseId": "<lease-id>",
+          "generation": 1,
+          "holder": "master-agent:mission-0002",
+          "acquiredAt": "<time>",
+          "renewedAt": "<time>",
+          "expiresAt": "<time>"
+        }
+      }
+    },
+    {
+      "id": "lease-b",
+      "note": "재분석·계획 교체의 임대를 먼저 얻는다(make-before-break). 같은 보유자 이름, 같은 세대에 임대가 둘이다.",
+      "argv": [
+        "lease",
+        "acquire",
+        "--holder",
+        "master-agent:mission-0002",
+        "--generation",
+        "1",
+        "--ttl",
+        "3600",
+        "--index-id",
+        "<index-id>"
+      ],
+      "exitCode": 0,
+      "stdout": {
+        "schema": "agent-knowledge.lease",
+        "schemaVersion": 1,
+        "ok": true,
+        "status": "ok",
+        "action": "acquire",
+        "indexId": "<index-id>",
+        "lease": {
+          "leaseId": "<lease-id>",
+          "generation": 1,
+          "holder": "master-agent:mission-0002",
+          "acquiredAt": "<time>",
+          "renewedAt": "<time>",
+          "expiresAt": "<time>"
+        }
+      }
+    },
+    {
+      "id": "commit-1",
+      "note": "원본이 바뀐다. 예제 실행기가 임시 원본 저장소에만 커밋한다.",
+      "commit": {
+        "source": "rank-auth",
+        "files": {
+          "docs/auth-policies.md": {
+            "replace": [
+              "발급 후 15분이 지나면",
+              "발급 후 30분이 지나면"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "index-2",
+      "argv": [
+        "index",
+        "--response-version",
+        "2"
+      ],
+      "exitCode": 0,
+      "stdout": {
+        "schema": "agent-knowledge.index",
+        "schemaVersion": 2,
+        "status": "published",
+        "generation": 2,
+        "activated": true,
+        "activeGeneration": 2
+      }
+    },
+    {
+      "id": "status-two-leases",
+      "argv": [
+        "status",
+        "--response-version",
+        "2"
+      ],
+      "exitCode": 0,
+      "stdout": {
+        "schema": "agent-knowledge.status",
+        "schemaVersion": 2,
+        "activeGeneration": 2,
+        "generations": [
+          {
+            "generation": 2,
+            "activated": true,
+            "liveLeases": 0
+          },
+          {
+            "generation": 1,
+            "activated": true,
+            "liveLeases": 2
+          }
+        ],
+        "leases": {
+          "live": 2,
+          "expired": 0
+        }
+      }
+    },
+    {
+      "id": "release-a",
+      "note": "옛 계획의 임대만 푼다. 보유자 이름이 같아도 다른 leaseId의 임대는 그대로 세대를 지킨다.",
+      "argv": [
+        "lease",
+        "release",
+        "--lease-id",
+        "<lease-id:lease-a>"
+      ],
+      "exitCode": 0,
+      "stdout": {
+        "schema": "agent-knowledge.lease",
+        "schemaVersion": 1,
+        "ok": true,
+        "status": "ok",
+        "action": "release",
+        "indexId": "<index-id>",
+        "leaseId": "<lease-id>",
+        "released": true
+      }
+    },
+    {
+      "id": "commit-2",
+      "commit": {
+        "source": "rank-auth",
+        "files": {
+          "docs/auth-policies.md": {
+            "replace": [
+              "발급 후 30분이 지나면",
+              "발급 후 20분이 지나면"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "index-3",
+      "argv": [
+        "index",
+        "--response-version",
+        "2"
+      ],
+      "exitCode": 0,
+      "note": "retainGenerations가 1이라 임대 없는 세대 2는 지워지고 임대가 남은 세대 1은 남는다.",
+      "stdout": {
+        "schema": "agent-knowledge.index",
+        "schemaVersion": 2,
+        "status": "published",
+        "generation": 3,
+        "activated": true,
+        "activeGeneration": 3
+      }
+    },
+    {
+      "id": "status-after-release",
+      "argv": [
+        "status",
+        "--response-version",
+        "2"
+      ],
+      "exitCode": 0,
+      "stdout": {
+        "activeGeneration": 3,
+        "generations": [
+          {
+            "generation": 3,
+            "liveLeases": 0
+          },
+          {
+            "generation": 1,
+            "liveLeases": 1
+          }
+        ],
+        "leases": {
+          "live": 1,
+          "expired": 0
+        }
+      }
+    },
+    {
+      "id": "verify-while-leased",
+      "note": "고정한 세대 1의 참조는 그대로다. current는 활성 세대 3에서 내용이 바뀌었음을 알릴 뿐 참조를 바꾸지 않는다.",
+      "argv": [
+        "verify",
+        "--request",
+        "-"
+      ],
+      "request": {
+        "profile": "code",
+        "scope": {
+          "projects": [
+            "rank-auth"
+          ]
+        },
+        "references": [
+          {
+            "handle": "<handle>",
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "sourceId": "rank-auth",
+            "projectId": "rank-auth",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b",
+            "documentSha256": "5ea0512d02b1f18f741c056a930472c0e14f59025a30667ad4ed50f5881aa31a",
+            "blobSha": "03e76e5aeafca7a47c805163faf6df2857b1daa1",
+            "path": "docs/auth-policies.md",
+            "startLine": 9,
+            "endLine": 15,
+            "segmentId": null,
+            "segmentSha256": null,
+            "segmentStartLine": null,
+            "segmentEndLine": null
+          }
+        ]
+      },
+      "exitCode": 0,
+      "stdout": {
+        "schema": "agent-knowledge.verify",
+        "indexId": "<index-id>",
+        "against": {
+          "indexGeneration": 3,
+          "activeGeneration": 3
+        },
+        "results": [
+          {
+            "reference": {
+              "verdict": "intact"
+            },
+            "current": {
+              "indexGeneration": 3,
+              "state": "changed",
+              "itemSha256": "fe931ead2119ffc5144e97daa40c2a178cd46fb24a204dd676a19abc8afc1cbc"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "expire",
+      "note": "기간이 지난 상태를 만든다. 예제 실행기만 임시 DB의 만료 시각을 바꾼다.",
+      "expireLeases": {}
+    },
+    {
+      "id": "renew-expired",
+      "note": "만료된 임대는 되살리지 않는다.",
+      "argv": [
+        "lease",
+        "renew",
+        "--lease-id",
+        "<lease-id:lease-b>",
+        "--ttl",
+        "3600"
+      ],
+      "exitCode": 3,
+      "stdout": {
+        "schema": "agent-knowledge.error",
+        "schemaVersion": 1,
+        "ok": false,
+        "status": "error",
+        "command": "lease",
+        "error": {
+          "code": "not-found",
+          "message": "임대가 만료되었습니다: <lease-id>",
+          "detail": {
+            "reason": "lease-expired",
+            "leaseId": "<lease-id>",
+            "expiresAt": "<time>"
+          }
+        }
+      }
+    },
+    {
+      "id": "list-expired",
+      "argv": [
+        "lease",
+        "list",
+        "--holder",
+        "master-agent:mission-0002"
+      ],
+      "exitCode": 0,
+      "note": "만료 표시는 다음 index의 GC 전까지만 보인다. 재시작한 master는 임무 상태의 leaseId로 갱신하고, 목록은 기록에 없는 고아 임대를 찾는 데만 쓴다.",
+      "stdout": {
+        "schema": "agent-knowledge.lease",
+        "schemaVersion": 1,
+        "ok": true,
+        "status": "ok",
+        "action": "list",
+        "indexId": "<index-id>",
+        "leases": [
+          {
+            "leaseId": "<lease-id>",
+            "generation": 1,
+            "holder": "master-agent:mission-0002",
+            "acquiredAt": "<time>",
+            "renewedAt": "<time>",
+            "expiresAt": "<time>",
+            "expired": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "verify-expired-before-gc",
+      "note": "만료되었어도 GC가 돌기 전에는 세대가 남아 있다. GC는 index 실행 때만 돈다.",
+      "argv": [
+        "verify",
+        "--request",
+        "-"
+      ],
+      "request": {
+        "profile": "code",
+        "scope": {
+          "projects": [
+            "rank-auth"
+          ]
+        },
+        "references": [
+          {
+            "handle": "<handle>",
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "sourceId": "rank-auth",
+            "projectId": "rank-auth",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b",
+            "documentSha256": "5ea0512d02b1f18f741c056a930472c0e14f59025a30667ad4ed50f5881aa31a",
+            "blobSha": "03e76e5aeafca7a47c805163faf6df2857b1daa1",
+            "path": "docs/auth-policies.md",
+            "startLine": 9,
+            "endLine": 15,
+            "segmentId": null,
+            "segmentSha256": null,
+            "segmentStartLine": null,
+            "segmentEndLine": null
+          }
+        ]
+      },
+      "exitCode": 0,
+      "stdout": {
+        "schema": "agent-knowledge.verify",
+        "indexId": "<index-id>",
+        "against": {
+          "indexGeneration": 3,
+          "activeGeneration": 3
+        },
+        "results": [
+          {
+            "reference": {
+              "verdict": "intact"
+            },
+            "current": {
+              "indexGeneration": 3,
+              "state": "changed",
+              "itemSha256": "fe931ead2119ffc5144e97daa40c2a178cd46fb24a204dd676a19abc8afc1cbc"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "reacquire",
+      "note": "세대가 남아 있으면 같은 세대에 새 임대를 얻는다. 새 세대로 바꾸지 않는다.",
+      "argv": [
+        "lease",
+        "acquire",
+        "--holder",
+        "master-agent:mission-0002",
+        "--generation",
+        "1",
+        "--ttl",
+        "3600",
+        "--index-id",
+        "<index-id>"
+      ],
+      "exitCode": 0,
+      "stdout": {
+        "schema": "agent-knowledge.lease",
+        "schemaVersion": 1,
+        "ok": true,
+        "status": "ok",
+        "action": "acquire",
+        "indexId": "<index-id>",
+        "lease": {
+          "leaseId": "<lease-id>",
+          "generation": 1,
+          "holder": "master-agent:mission-0002",
+          "acquiredAt": "<time>",
+          "renewedAt": "<time>",
+          "expiresAt": "<time>"
+        }
+      }
+    },
+    {
+      "id": "release-reacquired",
+      "argv": [
+        "lease",
+        "release",
+        "--lease-id",
+        "<lease-id:reacquire>"
+      ],
+      "exitCode": 0,
+      "stdout": {
+        "schema": "agent-knowledge.lease",
+        "schemaVersion": 1,
+        "ok": true,
+        "status": "ok",
+        "action": "release",
+        "indexId": "<index-id>",
+        "leaseId": "<lease-id>",
+        "released": true
+      }
+    },
+    {
+      "id": "commit-3",
+      "commit": {
+        "source": "rank-auth",
+        "files": {
+          "docs/auth-policies.md": {
+            "replace": [
+              "발급 후 20분이 지나면",
+              "발급 후 25분이 지나면"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "index-4",
+      "argv": [
+        "index",
+        "--response-version",
+        "2"
+      ],
+      "exitCode": 0,
+      "note": "유효한 임대가 없으므로 세대 1이 지워진다.",
+      "stdout": {
+        "schema": "agent-knowledge.index",
+        "schemaVersion": 2,
+        "status": "published",
+        "generation": 4,
+        "activated": true,
+        "activeGeneration": 4
+      }
+    },
+    {
+      "id": "renew-after-gc",
+      "note": "GC가 만료된 임대 행을 지운 뒤에는 lease-expired가 아니라 lease-not-found다. 소비자는 둘을 같게 다룬다.",
+      "argv": [
+        "lease",
+        "renew",
+        "--lease-id",
+        "<lease-id:lease-b>",
+        "--ttl",
+        "3600"
+      ],
+      "exitCode": 3,
+      "stdout": {
+        "schema": "agent-knowledge.error",
+        "schemaVersion": 1,
+        "ok": false,
+        "status": "error",
+        "command": "lease",
+        "error": {
+          "code": "not-found",
+          "message": "임대가 없습니다: <lease-id>",
+          "detail": {
+            "reason": "lease-not-found",
+            "leaseId": "<lease-id>"
+          }
+        }
+      }
+    },
+    {
+      "id": "list-after-gc",
+      "argv": [
+        "lease",
+        "list",
+        "--holder",
+        "master-agent:mission-0002"
+      ],
+      "exitCode": 0,
+      "stdout": {
+        "schema": "agent-knowledge.lease",
+        "schemaVersion": 1,
+        "ok": true,
+        "status": "ok",
+        "action": "list",
+        "indexId": "<index-id>",
+        "leases": []
+      }
+    },
+    {
+      "id": "verify-after-gc",
+      "note": "세대가 지워지면 generation-missing이다. current가 same이나 changed여도 고정한 근거를 대신하지 않는다.",
+      "argv": [
+        "verify",
+        "--request",
+        "-"
+      ],
+      "request": {
+        "profile": "code",
+        "scope": {
+          "projects": [
+            "rank-auth"
+          ]
+        },
+        "references": [
+          {
+            "handle": "<handle>",
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "sourceId": "rank-auth",
+            "projectId": "rank-auth",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b",
+            "documentSha256": "5ea0512d02b1f18f741c056a930472c0e14f59025a30667ad4ed50f5881aa31a",
+            "blobSha": "03e76e5aeafca7a47c805163faf6df2857b1daa1",
+            "path": "docs/auth-policies.md",
+            "startLine": 9,
+            "endLine": 15,
+            "segmentId": null,
+            "segmentSha256": null,
+            "segmentStartLine": null,
+            "segmentEndLine": null
+          }
+        ]
+      },
+      "exitCode": 0,
+      "stdout": {
+        "schema": "agent-knowledge.verify",
+        "indexId": "<index-id>",
+        "against": {
+          "indexGeneration": 4,
+          "activeGeneration": 4
+        },
+        "results": [
+          {
+            "reference": {
+              "verdict": "generation-missing"
+            },
+            "current": {
+              "indexGeneration": 4,
+              "state": "changed",
+              "itemSha256": "14f5f5c1b6912ddab8baa0249873347e3af275e401ee423aedc1994cad535c96"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "get-after-gc",
+      "argv": [
+        "get",
+        "--request",
+        "-"
+      ],
+      "request": {
+        "responseVersion": 2,
+        "id": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+        "profile": "code",
+        "scope": {
+          "projects": [
+            "rank-auth"
+          ]
+        },
+        "version": {
+          "generation": 1,
+          "indexId": "<index-id>",
+          "exact": true
+        },
+        "expect": {
+          "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b"
+        }
+      },
+      "exitCode": 5,
+      "stdout": {
+        "schema": "agent-knowledge.error",
+        "schemaVersion": 1,
+        "ok": false,
+        "status": "error",
+        "command": "get",
+        "error": {
+          "code": "index-missing",
+          "message": "색인 세대를 찾을 수 없습니다: 1",
+          "detail": {
+            "reason": "generation-not-found",
+            "generation": 1
+          }
+        }
+      }
+    },
+    {
+      "id": "search-pinned-after-gc",
+      "note": "고정한 세대로 검색해도 활성 세대로 대신하지 않는다.",
+      "argv": [
+        "search",
+        "--request",
+        "-"
+      ],
+      "request": {
+        "responseVersion": 2,
+        "profile": "master",
+        "query": "비밀번호 재설정",
+        "scope": {
+          "projects": [
+            "rank-auth"
+          ]
+        },
+        "version": {
+          "generation": 1,
+          "indexId": "<index-id>",
+          "exact": true
+        }
+      },
+      "exitCode": 5,
+      "stdout": {
+        "schema": "agent-knowledge.error",
+        "schemaVersion": 1,
+        "ok": false,
+        "status": "error",
+        "command": "search",
+        "error": {
+          "code": "index-missing",
+          "message": "색인 세대를 찾을 수 없습니다: 1",
+          "detail": {
+            "reason": "generation-not-found",
+            "generation": 1
+          }
+        }
+      }
+    },
+    {
+      "id": "acquire-after-gc",
+      "argv": [
+        "lease",
+        "acquire",
+        "--holder",
+        "master-agent:mission-0002",
+        "--generation",
+        "1",
+        "--index-id",
+        "<index-id>"
+      ],
+      "exitCode": 5,
+      "stdout": {
+        "schema": "agent-knowledge.error",
+        "schemaVersion": 1,
+        "ok": false,
+        "status": "error",
+        "command": "lease",
+        "error": {
+          "code": "index-missing",
+          "message": "보존된 세대가 아닙니다: 1",
+          "detail": {
+            "reason": "generation-not-found",
+            "generation": 1
+          }
+        }
+      }
+    },
+    {
+      "id": "commit-4",
+      "commit": {
+        "source": "rank-auth",
+        "files": {
+          "docs/auth-policies.md": {
+            "replace": [
+              "발급 후 25분이 지나면",
+              "발급 후 35분이 지나면"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "index-unleased-work",
+      "note": "작업 브랜치처럼 활성화하지 않고 게시한다. 임대가 없다.",
+      "argv": [
+        "index",
+        "--no-activate",
+        "--response-version",
+        "2"
+      ],
+      "exitCode": 0,
+      "stdout": {
+        "schema": "agent-knowledge.index",
+        "schemaVersion": 2,
+        "status": "published",
+        "generation": 5,
+        "activated": false,
+        "activeGeneration": 4,
+        "lease": null
+      }
+    },
+    {
+      "id": "commit-5",
+      "commit": {
+        "source": "rank-auth",
+        "files": {
+          "docs/auth-policies.md": {
+            "replace": [
+              "발급 후 35분이 지나면",
+              "발급 후 40분이 지나면"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "index-after-unleased",
+      "note": "활성화하지 않은 세대는 보존 개수에 들지 않으므로 임대가 없으면 다음 index에서 지워진다.",
+      "argv": [
+        "index",
+        "--response-version",
+        "2"
+      ],
+      "exitCode": 0,
+      "stdout": {
+        "schema": "agent-knowledge.index",
+        "schemaVersion": 2,
+        "status": "published",
+        "generation": 6,
+        "activated": true,
+        "activeGeneration": 6,
+        "lease": null
+      }
+    },
+    {
+      "id": "status-unleased-gone",
+      "argv": [
+        "status",
+        "--response-version",
+        "2"
+      ],
+      "exitCode": 0,
+      "stdout": {
+        "activeGeneration": 6,
+        "generations": [
+          {
+            "generation": 6,
+            "activated": true,
+            "liveLeases": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "commit-6",
+      "commit": {
+        "source": "rank-auth",
+        "files": {
+          "docs/auth-policies.md": {
+            "replace": [
+              "발급 후 40분이 지나면",
+              "발급 후 45분이 지나면"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "index-leased-work",
+      "note": "게시와 임대를 한 트랜잭션에서 한다. 활성화하지 않은 세대를 참조로 넘길 때 쓴다.",
+      "argv": [
+        "index",
+        "--no-activate",
+        "--response-version",
+        "2",
+        "--lease-holder",
+        "master-agent:mission-0002",
+        "--lease-ttl",
+        "3600"
+      ],
+      "exitCode": 0,
+      "stdout": {
+        "schema": "agent-knowledge.index",
+        "schemaVersion": 2,
+        "status": "published",
+        "generation": 7,
+        "activated": false,
+        "activeGeneration": 6,
+        "lease": {
+          "leaseId": "<lease-id>",
+          "generation": 7,
+          "holder": "master-agent:mission-0002",
+          "acquiredAt": "<time>",
+          "renewedAt": "<time>",
+          "expiresAt": "<time>"
+        }
+      }
+    },
+    {
+      "id": "commit-7",
+      "commit": {
+        "source": "rank-auth",
+        "files": {
+          "docs/auth-policies.md": {
+            "replace": [
+              "발급 후 45분이 지나면",
+              "발급 후 50분이 지나면"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "index-after-leased",
+      "argv": [
+        "index",
+        "--response-version",
+        "2"
+      ],
+      "exitCode": 0,
+      "stdout": {
+        "schema": "agent-knowledge.index",
+        "schemaVersion": 2,
+        "status": "published",
+        "generation": 8,
+        "activated": true,
+        "activeGeneration": 8,
+        "lease": null
+      }
+    },
+    {
+      "id": "status-leased-kept",
+      "note": "임대가 걸린 활성화하지 않은 세대는 남는다.",
+      "argv": [
+        "status",
+        "--response-version",
+        "2"
+      ],
+      "exitCode": 0,
+      "stdout": {
+        "activeGeneration": 8,
+        "generations": [
+          {
+            "generation": 8,
+            "activated": true,
+            "liveLeases": 0
+          },
+          {
+            "generation": 7,
+            "activated": false,
+            "liveLeases": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "release-work",
+      "argv": [
+        "lease",
+        "release",
+        "--lease-id",
+        "<lease-id:index-leased-work>"
+      ],
+      "exitCode": 0,
+      "stdout": {
+        "schema": "agent-knowledge.lease",
+        "schemaVersion": 1,
+        "ok": true,
+        "status": "ok",
+        "action": "release",
+        "indexId": "<index-id>",
+        "leaseId": "<lease-id>",
+        "released": true
+      }
+    }
+  ]
+}

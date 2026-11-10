@@ -1,0 +1,471 @@
+{
+  "schema": "agent-knowledge.contract-example",
+  "schemaVersion": 1,
+  "title": "기능 협의와 응답 형식 선택",
+  "fixture": {
+    "workspace": "evals/fixtures/ranking-workspace"
+  },
+  "notes": [
+    "docs/integration.md의 '기능 협의'에 대응하는 정본 예제다. 소비자는 capabilities로 형식 2를 확인한 뒤에만 responseVersion 2를 보낸다.",
+    "형식 1 요청 두 개는 code-agent 3c5bbac와 master-agent 217f37f가 지금 보내는 모양 그대로다. 형식 1 응답은 바꾸지 않는다.",
+    "자리표시: <index-id>는 이번 실행의 색인 ID, <time>은 시각이다. stdout은 실제 응답의 부분 집합이며 배열은 길이까지 같다."
+  ],
+  "steps": [
+    {
+      "id": "capabilities",
+      "note": "색인 DB와 원본 설정 없이 읽는다. profiles.<프로필>.configHash는 --retrieval-config 파일 내용에 따라 달라진다.",
+      "argv": [
+        "capabilities"
+      ],
+      "exitCode": 0,
+      "stdout": {
+        "schema": "agent-knowledge.capabilities",
+        "schemaVersion": 1,
+        "package": {
+          "name": "agent-knowledge",
+          "version": "0.1.0"
+        },
+        "commands": {
+          "validate": {
+            "responseVersions": [
+              1
+            ],
+            "defaultResponseVersion": 1
+          },
+          "index": {
+            "responseVersions": [
+              1,
+              2
+            ],
+            "defaultResponseVersion": 1
+          },
+          "status": {
+            "responseVersions": [
+              1,
+              2
+            ],
+            "defaultResponseVersion": 1
+          },
+          "search": {
+            "responseVersions": [
+              1,
+              2
+            ],
+            "defaultResponseVersion": 1
+          },
+          "get": {
+            "responseVersions": [
+              1,
+              2
+            ],
+            "defaultResponseVersion": 1
+          },
+          "eval": {
+            "responseVersions": [
+              1,
+              2
+            ],
+            "defaultResponseVersion": 1
+          },
+          "capabilities": {
+            "responseVersions": [
+              1
+            ],
+            "defaultResponseVersion": 1
+          },
+          "verify": {
+            "responseVersions": [
+              1
+            ],
+            "defaultResponseVersion": 1
+          },
+          "lease": {
+            "responseVersions": [
+              1
+            ],
+            "defaultResponseVersion": 1
+          }
+        },
+        "index": {
+          "schemaVersion": 2,
+          "minReadableSchemaVersion": 1,
+          "v2RequiresSchemaVersion": 2
+        },
+        "versions": {
+          "parser": "md-2",
+          "chunker": "chunk-2",
+          "tokenizer": "tok-1",
+          "resolver": "resolve-1",
+          "query": "query-2"
+        },
+        "rankers": [
+          {
+            "name": "legacy",
+            "version": "keyword-legacy-1",
+            "default": true
+          },
+          {
+            "name": "bm25",
+            "version": "keyword-bm25-2",
+            "default": false
+          }
+        ],
+        "segments": {
+          "chunkerVersion": "chunk-2",
+          "maxChars": 1500,
+          "defaultEnabled": false
+        },
+        "queryLimits": {
+          "maxQueries": 32,
+          "maxQueryChars": 4000,
+          "maxTermsPerQuery": 48,
+          "maxTotalTerms": 256
+        },
+        "budget": {
+          "groups": [
+            "mandatory",
+            "dependencies",
+            "direct",
+            "linked"
+          ],
+          "fields": [
+            "maxItems",
+            "maxExcerptChars",
+            "maxResponseBytes",
+            "priority"
+          ]
+        },
+        "leases": {
+          "ttlSeconds": {
+            "default": 86400,
+            "min": 60,
+            "max": 2592000
+          },
+          "maxLive": 1024
+        },
+        "verify": {
+          "maxReferences": 256
+        },
+        "profiles": {
+          "master": {
+            "configHash": "261914e09142754391befb64a835a91f3c94e41ec766e1c2337b0231ceebdf2c"
+          },
+          "code": {
+            "configHash": "ed8fb061d197339bfe8289ad755fcaa06d73f9fea0c18af6e67a0a049cb02184"
+          }
+        },
+        "vector": {
+          "implemented": false,
+          "state": "not-implemented"
+        }
+      }
+    },
+    {
+      "id": "status-v2",
+      "note": "색인 지문을 읽는다. DB 읽기 한 번과 색인된 설정 원본마다 git rev-parse 한 번이 든다.",
+      "argv": [
+        "status",
+        "--response-version",
+        "2"
+      ],
+      "exitCode": 0,
+      "stdout": {
+        "schema": "agent-knowledge.status",
+        "schemaVersion": 2,
+        "indexId": "<index-id>",
+        "databaseSchemaVersion": 2,
+        "activeGeneration": 1,
+        "generations": [
+          {
+            "generation": 1,
+            "activated": true,
+            "fingerprint": "601978894ea2d8fb62a3e35ec489319357e6392ee66d9459ded6331b54e4000f",
+            "parserVersion": "md-2",
+            "chunkerVersion": "chunk-2",
+            "liveLeases": 0
+          }
+        ],
+        "leases": {
+          "live": 0,
+          "expired": 0
+        },
+        "sources": [
+          {
+            "sourceId": "rank-auth",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "upToDate": true
+          },
+          {
+            "sourceId": "rank-billing",
+            "commit": "a8c8055ef51f40a7f1962139014aab58b6c0a0e1",
+            "upToDate": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "code-agent-v1-search",
+      "note": "code-agent 어댑터의 현재 요청(형식 1). 두 번째 질의부터 version.generation을 첫 응답의 세대로 고정한다.",
+      "argv": [
+        "search",
+        "--request",
+        "-"
+      ],
+      "request": {
+        "profile": "code",
+        "query": "비밀번호 재설정 토큰 만료",
+        "scope": {
+          "projects": [
+            "rank-auth"
+          ]
+        },
+        "task": {
+          "phase": "impact",
+          "paths": [
+            "src/auth/password.ts"
+          ]
+        },
+        "limit": 10
+      },
+      "exitCode": 0,
+      "stdout": {
+        "schema": "agent-knowledge.search",
+        "schemaVersion": 1,
+        "status": "ok",
+        "index": {
+          "generation": 1,
+          "sources": [
+            {
+              "sourceId": "rank-auth",
+              "projectId": "rank-auth",
+              "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+              "requestedRef": "HEAD"
+            }
+          ]
+        },
+        "items": [
+          {
+            "id": "rank-auth:docs/auth-policies.md#AUTH-POL-002",
+            "provenance": {
+              "itemSha256": "6f618c3d732dc9d20c4e7c95ddb0a29f9a7abf637acd844d21774d28eda233ef",
+              "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87"
+            }
+          },
+          {
+            "id": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "provenance": {
+              "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b",
+              "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87"
+            }
+          },
+          {
+            "id": "rank-auth:docs/api-catalog.md#API-AUTH-01",
+            "provenance": {
+              "itemSha256": "55aec0d4aefb911435bafe414524328904d7b85e08f933ac94afee89779ffd36",
+              "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87"
+            }
+          },
+          {
+            "id": "rank-auth:docs/token-guide.md#토큰-수명-주기",
+            "provenance": {
+              "itemSha256": "c67da925da20982450e95eaa5c8fdd3a716807d6b77d6b6b822b9a4329ff7adf",
+              "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87"
+            }
+          },
+          {
+            "id": "rank-auth:docs/token-guide.md#토큰-오류-응답",
+            "provenance": {
+              "itemSha256": "f74987a430434983ef882be3fdcde073aa83af05fc8af2d0bf90d31e24e23256",
+              "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87"
+            }
+          },
+          {
+            "id": "rank-auth:docs/token-guide.md#토큰-운영-안내",
+            "provenance": {
+              "itemSha256": "09a77dcc6fd36a3704b8316075d3a0f52a0fda1f055bebd932d720f71bca0735",
+              "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87"
+            }
+          },
+          {
+            "id": "rank-auth:docs/api-catalog.md#API-AUTH-02",
+            "provenance": {
+              "itemSha256": "24aabe90f507b2f8b8e8b98f12387f46ed070e7c0d22d724031bd2734ae4a703",
+              "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87"
+            }
+          },
+          {
+            "id": "rank-auth:docs/api-catalog.md#API-AUTH-03",
+            "provenance": {
+              "itemSha256": "13053a49df8afaf9d1c464c2f60d4cee08cb84a41193109f61856f8e0ab93217",
+              "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "master-agent-v1-search",
+      "note": "master-agent의 현재 요청(형식 1). 프로젝트마다, 질의마다 한 번씩 부르고 첫 응답 뒤로는 세대를 고정한다.",
+      "argv": [
+        "search",
+        "--request",
+        "-"
+      ],
+      "request": {
+        "profile": "master",
+        "query": "로그인 API 세션",
+        "scope": {
+          "projects": [
+            "rank-billing"
+          ],
+          "allowedLinks": [
+            {
+              "project": "rank-auth",
+              "kinds": [
+                "api-catalog"
+              ]
+            }
+          ]
+        },
+        "version": {
+          "generation": 1
+        },
+        "limit": 10
+      },
+      "exitCode": 0,
+      "stdout": {
+        "schema": "agent-knowledge.search",
+        "schemaVersion": 1,
+        "status": "ok",
+        "appliedScope": {
+          "projects": [
+            "rank-billing"
+          ],
+          "allowedLinks": [
+            {
+              "project": "rank-auth",
+              "kinds": [
+                "api-catalog"
+              ],
+              "itemIds": null
+            }
+          ],
+          "kinds": null,
+          "statuses": [
+            "confirmed_policy",
+            "observed_behavior",
+            "verified_experience",
+            "unverified",
+            "conflicted"
+          ]
+        },
+        "index": {
+          "generation": 1
+        },
+        "items": [
+          {
+            "id": "rank-auth:docs/api-catalog.md#API-AUTH-02",
+            "selection": {
+              "section": "contracts"
+            }
+          },
+          {
+            "id": "rank-auth:docs/api-catalog.md#API-AUTH-03",
+            "selection": {
+              "section": "contracts"
+            }
+          },
+          {
+            "id": "rank-auth:docs/api-catalog.md#API-AUTH-01",
+            "selection": {
+              "section": "contracts"
+            }
+          },
+          {
+            "id": "rank-auth:docs/api-catalog.md#인증-api-목록",
+            "selection": {
+              "section": "contracts"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "v2-field-in-v1-request",
+      "note": "협의 없이 형식 2 필드를 보내면 형식 1로 조용히 무시하지 않고 거절한다.",
+      "argv": [
+        "search",
+        "--request",
+        "-"
+      ],
+      "request": {
+        "profile": "code",
+        "query": "토큰",
+        "scope": {
+          "projects": [
+            "rank-auth"
+          ]
+        },
+        "budget": {
+          "maxItems": 2
+        }
+      },
+      "exitCode": 2,
+      "stdout": {
+        "schema": "agent-knowledge.error",
+        "schemaVersion": 1,
+        "ok": false,
+        "status": "error",
+        "command": "search",
+        "error": {
+          "code": "invalid-request",
+          "message": "이 필드는 responseVersion 2 요청에서만 쓸 수 있습니다",
+          "detail": {
+            "reason": "response-version-2-required",
+            "fields": [
+              "budget"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "unsupported-response-version",
+      "argv": [
+        "search",
+        "--request",
+        "-"
+      ],
+      "request": {
+        "responseVersion": 3,
+        "profile": "code",
+        "query": "토큰",
+        "scope": {
+          "projects": [
+            "rank-auth"
+          ]
+        }
+      },
+      "exitCode": 2,
+      "stdout": {
+        "schema": "agent-knowledge.error",
+        "schemaVersion": 1,
+        "ok": false,
+        "status": "error",
+        "command": "search",
+        "error": {
+          "code": "invalid-request",
+          "message": "지원하지 않는 응답 형식입니다",
+          "detail": {
+            "reason": "unsupported-response-version",
+            "requested": 3,
+            "supported": [
+              1,
+              2
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

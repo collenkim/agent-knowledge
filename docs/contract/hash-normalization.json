@@ -1,0 +1,260 @@
+{
+  "schema": "agent-knowledge.contract-example",
+  "schemaVersion": 1,
+  "title": "내용 해시의 줄바꿈·BOM 정규화",
+  "fixture": {
+    "workspace": "evals/fixtures/ranking-workspace"
+  },
+  "notes": [
+    "docs/integration.md의 '내용 해시 규칙'에 대응하는 정본 예제다. 받는 쪽이 작업 트리 파일로 itemSha256을 다시 계산할 때 이 규칙을 쓴다.",
+    "itemSha256(segmentSha256도 같다)은 줄바꿈(LF, CRLF, CR)과 BOM에 상관없이 같다. documentSha256(블롭 바이트의 SHA-256)과 blobSha(Git 객체 ID)는 원본 바이트마다 다르다. 규칙의 정본은 docs/knowledge-model.md다.",
+    "tests/handoff-contract.test.ts가 commit-variants의 원본 바이트로 itemSha256을 직접 계산해 이 응답과 비교한다."
+  ],
+  "steps": [
+    {
+      "id": "commit-variants",
+      "note": "같은 글을 줄바꿈·BOM만 달리해 커밋한다. 원본 바이트는 이 JSON 문자열 그대로다.",
+      "commit": {
+        "source": "rank-auth",
+        "files": {
+          "docs/hash/lf.md": "---\nfixture: true\n---\n# 줄바꿈 확인\n\n> 테스트용 자료(FIXTURE) — 실제 프로젝트 정책이 아니다.\n\n## 해시 규칙\n\n첫째 줄이다.\n둘째 줄이다.\n",
+          "docs/hash/crlf.md": "---\r\nfixture: true\r\n---\r\n# 줄바꿈 확인\r\n\r\n> 테스트용 자료(FIXTURE) — 실제 프로젝트 정책이 아니다.\r\n\r\n## 해시 규칙\r\n\r\n첫째 줄이다.\r\n둘째 줄이다.\r\n",
+          "docs/hash/cr.md": "---\rfixture: true\r---\r# 줄바꿈 확인\r\r> 테스트용 자료(FIXTURE) — 실제 프로젝트 정책이 아니다.\r\r## 해시 규칙\r\r첫째 줄이다.\r둘째 줄이다.\r",
+          "docs/hash/bom-crlf.md": "﻿---\r\nfixture: true\r\n---\r\n# 줄바꿈 확인\r\n\r\n> 테스트용 자료(FIXTURE) — 실제 프로젝트 정책이 아니다.\r\n\r\n## 해시 규칙\r\n\r\n첫째 줄이다.\r\n둘째 줄이다.\r\n",
+          "docs/hash/no-final-newline.md": "---\nfixture: true\n---\n# 줄바꿈 확인\n\n> 테스트용 자료(FIXTURE) — 실제 프로젝트 정책이 아니다.\n\n## 해시 규칙\n\n첫째 줄이다.\n둘째 줄이다.",
+          "docs/hash/mixed.md": "---\nfixture: true\n---\n# 줄바꿈 확인\n\r\n> 테스트용 자료(FIXTURE) — 실제 프로젝트 정책이 아니다.\r\r## 해시 규칙\r\r\n첫째 줄이다.\n둘째 줄이다.\n\n"
+        }
+      }
+    },
+    {
+      "id": "index",
+      "argv": [
+        "index",
+        "--response-version",
+        "2"
+      ],
+      "exitCode": 0,
+      "stdout": {
+        "schema": "agent-knowledge.index",
+        "status": "published",
+        "generation": 2
+      }
+    },
+    {
+      "id": "get-lf",
+      "argv": [
+        "get",
+        "--request",
+        "-"
+      ],
+      "request": {
+        "responseVersion": 2,
+        "id": "rank-auth:docs/hash/lf.md#해시-규칙",
+        "profile": "code",
+        "scope": {
+          "projects": [
+            "rank-auth"
+          ]
+        },
+        "version": {
+          "generation": 2,
+          "indexId": "<index-id>",
+          "exact": true
+        }
+      },
+      "exitCode": 0,
+      "stdout": {
+        "item": {
+          "id": "rank-auth:docs/hash/lf.md#해시-규칙",
+          "ref": {
+            "itemSha256": "7b2404c01a0edfd3c1ecc5be6deacb94396064a73525551ff90a90e2a88850ff",
+            "documentSha256": "fda964e46f7381be663769cf82a38b76fe7ac1b022958ba40f429effcfa01612",
+            "blobSha": "2327c39754c9fc61aff0c826fbc7043c28270a78",
+            "startLine": 8,
+            "endLine": 11
+          }
+        }
+      }
+    },
+    {
+      "id": "get-crlf",
+      "argv": [
+        "get",
+        "--request",
+        "-"
+      ],
+      "request": {
+        "responseVersion": 2,
+        "id": "rank-auth:docs/hash/crlf.md#해시-규칙",
+        "profile": "code",
+        "scope": {
+          "projects": [
+            "rank-auth"
+          ]
+        },
+        "version": {
+          "generation": 2,
+          "indexId": "<index-id>",
+          "exact": true
+        }
+      },
+      "exitCode": 0,
+      "stdout": {
+        "item": {
+          "id": "rank-auth:docs/hash/crlf.md#해시-규칙",
+          "ref": {
+            "itemSha256": "7b2404c01a0edfd3c1ecc5be6deacb94396064a73525551ff90a90e2a88850ff",
+            "documentSha256": "f7f94522138ec25c8bfc314743efef8d015e9df54af2304905204627338dedfd",
+            "blobSha": "e7fd32c7a2e3113074cbdf6e9f801b0a4423fe2d",
+            "startLine": 8,
+            "endLine": 11
+          }
+        }
+      }
+    },
+    {
+      "id": "get-cr",
+      "argv": [
+        "get",
+        "--request",
+        "-"
+      ],
+      "request": {
+        "responseVersion": 2,
+        "id": "rank-auth:docs/hash/cr.md#해시-규칙",
+        "profile": "code",
+        "scope": {
+          "projects": [
+            "rank-auth"
+          ]
+        },
+        "version": {
+          "generation": 2,
+          "indexId": "<index-id>",
+          "exact": true
+        }
+      },
+      "exitCode": 0,
+      "stdout": {
+        "item": {
+          "id": "rank-auth:docs/hash/cr.md#해시-규칙",
+          "ref": {
+            "itemSha256": "7b2404c01a0edfd3c1ecc5be6deacb94396064a73525551ff90a90e2a88850ff",
+            "documentSha256": "85fbe957b391cf27c28734a5dd40068f1046b6c07a302ad3b22e4b37292b2657",
+            "blobSha": "5e29c5f9a0985fd0de9a4d42bb1eaf7e39d74b5b",
+            "startLine": 8,
+            "endLine": 11
+          }
+        }
+      }
+    },
+    {
+      "id": "get-bom-crlf",
+      "argv": [
+        "get",
+        "--request",
+        "-"
+      ],
+      "request": {
+        "responseVersion": 2,
+        "id": "rank-auth:docs/hash/bom-crlf.md#해시-규칙",
+        "profile": "code",
+        "scope": {
+          "projects": [
+            "rank-auth"
+          ]
+        },
+        "version": {
+          "generation": 2,
+          "indexId": "<index-id>",
+          "exact": true
+        }
+      },
+      "exitCode": 0,
+      "stdout": {
+        "item": {
+          "id": "rank-auth:docs/hash/bom-crlf.md#해시-규칙",
+          "ref": {
+            "itemSha256": "7b2404c01a0edfd3c1ecc5be6deacb94396064a73525551ff90a90e2a88850ff",
+            "documentSha256": "c5a8017f2b6732ceaa6f7cadb6f3fe3bafd1d59ce20d5fc18320f58c2f0ac8d3",
+            "blobSha": "6d4dea5bfa22352bd905fbae114f954b10036a08",
+            "startLine": 8,
+            "endLine": 11
+          }
+        }
+      }
+    },
+    {
+      "id": "get-no-final-newline",
+      "argv": [
+        "get",
+        "--request",
+        "-"
+      ],
+      "request": {
+        "responseVersion": 2,
+        "id": "rank-auth:docs/hash/no-final-newline.md#해시-규칙",
+        "profile": "code",
+        "scope": {
+          "projects": [
+            "rank-auth"
+          ]
+        },
+        "version": {
+          "generation": 2,
+          "indexId": "<index-id>",
+          "exact": true
+        }
+      },
+      "exitCode": 0,
+      "stdout": {
+        "item": {
+          "id": "rank-auth:docs/hash/no-final-newline.md#해시-규칙",
+          "ref": {
+            "itemSha256": "7b2404c01a0edfd3c1ecc5be6deacb94396064a73525551ff90a90e2a88850ff",
+            "documentSha256": "e6fb2c37dd9d806cdfe23833f7dbb4107638005cab1bfea010a59807b5b809e1",
+            "blobSha": "ec83c5335b74b1e02cd6322ce80b646c1299b12d",
+            "startLine": 8,
+            "endLine": 11
+          }
+        }
+      }
+    },
+    {
+      "id": "get-mixed",
+      "argv": [
+        "get",
+        "--request",
+        "-"
+      ],
+      "request": {
+        "responseVersion": 2,
+        "id": "rank-auth:docs/hash/mixed.md#해시-규칙",
+        "profile": "code",
+        "scope": {
+          "projects": [
+            "rank-auth"
+          ]
+        },
+        "version": {
+          "generation": 2,
+          "indexId": "<index-id>",
+          "exact": true
+        }
+      },
+      "exitCode": 0,
+      "stdout": {
+        "item": {
+          "id": "rank-auth:docs/hash/mixed.md#해시-규칙",
+          "ref": {
+            "itemSha256": "7b2404c01a0edfd3c1ecc5be6deacb94396064a73525551ff90a90e2a88850ff",
+            "documentSha256": "3650db6deefaa85e917f74802a835bf6390029da91f99ab9df9379d1e1a6e78a",
+            "blobSha": "f2684e969ebc61f858f232c7601f285618fc5180",
+            "startLine": 8,
+            "endLine": 11
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,616 @@
+{
+  "schema": "agent-knowledge.contract-example",
+  "schemaVersion": 1,
+  "title": "code 프로필: 형식 2 검색, ref로 다시 읽기, 참조 확인",
+  "fixture": {
+    "workspace": "evals/fixtures/ranking-workspace"
+  },
+  "notes": [
+    "docs/integration.md의 'code-agent 흐름'에 대응하는 정본 예제다. code 프로필은 프로젝트 하나와 contract·dependency·api-catalog 연결만 받는다.",
+    "include.mandatory:false는 필수 지정 항목을 보충으로 붙이지 않을 뿐이다. 직접 일치한 항목은 mandatory:true여도 direct로 남는다.",
+    "budget.maxExcerptChars는 항목 하나가 아니라 응답 전체 발췌 글자 수의 합이다. 예산으로 뺀 항목은 budget.omitted의 id로 get을 부른다.",
+    "<handle>은 같은 ref의 indexId·indexGeneration·itemId·segmentId·itemSha256·segmentSha256으로 다시 계산한 값이다."
+  ],
+  "steps": [
+    {
+      "id": "capabilities",
+      "argv": [
+        "capabilities"
+      ],
+      "exitCode": 0,
+      "stdout": {
+        "commands": {
+          "search": {
+            "responseVersions": [
+              1,
+              2
+            ],
+            "defaultResponseVersion": 1
+          },
+          "get": {
+            "responseVersions": [
+              1,
+              2
+            ],
+            "defaultResponseVersion": 1
+          },
+          "verify": {
+            "responseVersions": [
+              1
+            ],
+            "defaultResponseVersion": 1
+          }
+        },
+        "versions": {
+          "query": "query-2"
+        },
+        "profiles": {
+          "code": {
+            "configHash": "ed8fb061d197339bfe8289ad755fcaa06d73f9fea0c18af6e67a0a049cb02184"
+          }
+        }
+      }
+    },
+    {
+      "id": "search-v2",
+      "argv": [
+        "search",
+        "--request",
+        "-"
+      ],
+      "request": {
+        "responseVersion": 2,
+        "profile": "code",
+        "queries": [
+          {
+            "key": "R1",
+            "text": "리프레시 토큰 회전 재사용 감지"
+          },
+          {
+            "key": "R2",
+            "text": "비밀번호 재설정 토큰 만료"
+          }
+        ],
+        "scope": {
+          "projects": [
+            "rank-auth"
+          ]
+        },
+        "filters": {
+          "documents": [
+            "docs/auth-policies.md",
+            "docs/token-guide.md"
+          ]
+        },
+        "task": {
+          "phase": "impact",
+          "paths": [
+            "src/auth/password.ts"
+          ]
+        },
+        "include": {
+          "mandatory": false
+        },
+        "segments": true,
+        "budget": {
+          "maxItems": 4,
+          "maxExcerptChars": 2000,
+          "maxResponseBytes": 65536
+        },
+        "limit": 10
+      },
+      "exitCode": 0,
+      "stdout": {
+        "schema": "agent-knowledge.search",
+        "schemaVersion": 2,
+        "status": "ok",
+        "request": {
+          "queries": [
+            {
+              "key": "R1",
+              "chars": 17,
+              "sha256": "be6acd797fefac85ac0da5443b7a3579a69df739b20dbd0f2d42e3a47958ee47",
+              "duplicateOf": null
+            },
+            {
+              "key": "R2",
+              "chars": 14,
+              "sha256": "f665df13fb805fb8c3b94e2d66981ea68dbdf719d4ca7d94ca4a7d7a5809506f",
+              "duplicateOf": null
+            }
+          ],
+          "include": {
+            "mandatory": false,
+            "dependencies": true,
+            "links": true
+          },
+          "budget": {
+            "maxItems": 4,
+            "maxExcerptChars": 2000,
+            "maxResponseBytes": 65536
+          },
+          "documents": [
+            "docs/auth-policies.md",
+            "docs/token-guide.md"
+          ]
+        },
+        "appliedScope": {
+          "projects": [
+            "rank-auth"
+          ],
+          "allowedLinks": [],
+          "kinds": null,
+          "statuses": [
+            "confirmed_policy",
+            "observed_behavior",
+            "verified_experience",
+            "unverified",
+            "conflicted"
+          ],
+          "documents": [
+            {
+              "project": "rank-auth",
+              "path": "docs/auth-policies.md"
+            },
+            {
+              "project": "rank-auth",
+              "path": "docs/token-guide.md"
+            }
+          ]
+        },
+        "index": {
+          "generation": 1,
+          "indexId": "<index-id>",
+          "activeGeneration": 1,
+          "selection": {
+            "by": "active",
+            "exact": false
+          }
+        },
+        "retrieval": {
+          "outcome": "matched",
+          "ranker": {
+            "name": "legacy",
+            "version": "keyword-legacy-1"
+          },
+          "queryVersion": "query-2",
+          "configHash": "ed8fb061d197339bfe8289ad755fcaa06d73f9fea0c18af6e67a0a049cb02184",
+          "counts": {
+            "mandatory": 0,
+            "dependencies": 0,
+            "direct": 5,
+            "linked": 0,
+            "directMatched": 5,
+            "supplementaryMatched": 0,
+            "kept": {
+              "mandatory": 0,
+              "dependencies": 0,
+              "direct": 4,
+              "linked": 0
+            }
+          }
+        },
+        "items": [
+          {
+            "id": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "group": "direct",
+            "mandatory": false,
+            "knowledge": {
+              "status": "confirmed_policy",
+              "confirmed": true
+            },
+            "selection": {
+              "matchedQueries": [
+                "R1",
+                "R2"
+              ]
+            },
+            "segment": null,
+            "ref": {
+              "handle": "<handle>",
+              "indexId": "<index-id>",
+              "indexGeneration": 1,
+              "sourceId": "rank-auth",
+              "projectId": "rank-auth",
+              "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+              "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+              "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b",
+              "documentSha256": "5ea0512d02b1f18f741c056a930472c0e14f59025a30667ad4ed50f5881aa31a",
+              "blobSha": "03e76e5aeafca7a47c805163faf6df2857b1daa1",
+              "path": "docs/auth-policies.md",
+              "startLine": 9,
+              "endLine": 15,
+              "segmentId": null,
+              "segmentSha256": null,
+              "segmentStartLine": null,
+              "segmentEndLine": null
+            }
+          },
+          {
+            "id": "rank-auth:docs/token-guide.md#토큰-수명-주기",
+            "group": "direct",
+            "mandatory": false,
+            "knowledge": {
+              "status": "unverified",
+              "confirmed": false
+            },
+            "selection": {
+              "matchedQueries": [
+                "R1",
+                "R2"
+              ]
+            },
+            "segment": {
+              "id": "rank-auth:docs/token-guide.md#토큰-수명-주기#2",
+              "ordinal": 2,
+              "count": 2,
+              "startLine": 27,
+              "endLine": 39,
+              "sha256": "aa0f504b980f83aa7a46fb69ae901c11b782f01f6b226d6f5f01f308816db2c9",
+              "heading": null
+            },
+            "ref": {
+              "handle": "<handle>",
+              "indexId": "<index-id>",
+              "indexGeneration": 1,
+              "sourceId": "rank-auth",
+              "projectId": "rank-auth",
+              "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+              "itemId": "rank-auth:docs/token-guide.md#토큰-수명-주기",
+              "itemSha256": "c67da925da20982450e95eaa5c8fdd3a716807d6b77d6b6b822b9a4329ff7adf",
+              "documentSha256": "8de07d682ccc4559e0a7442a1ff126ad86d2e6c66fff0329472e10787361207a",
+              "blobSha": "0bfab2d018b26273f1944ff0c182da9bb0f07d82",
+              "path": "docs/token-guide.md",
+              "startLine": 9,
+              "endLine": 39,
+              "segmentId": "rank-auth:docs/token-guide.md#토큰-수명-주기#2",
+              "segmentSha256": "aa0f504b980f83aa7a46fb69ae901c11b782f01f6b226d6f5f01f308816db2c9",
+              "segmentStartLine": 27,
+              "segmentEndLine": 39
+            }
+          },
+          {
+            "id": "rank-auth:docs/auth-policies.md#AUTH-POL-002",
+            "group": "direct",
+            "mandatory": true,
+            "knowledge": {
+              "status": "confirmed_policy",
+              "confirmed": true
+            },
+            "selection": {
+              "matchedQueries": [
+                "R2"
+              ]
+            },
+            "segment": null,
+            "ref": {
+              "handle": "<handle>",
+              "indexId": "<index-id>",
+              "indexGeneration": 1,
+              "sourceId": "rank-auth",
+              "projectId": "rank-auth",
+              "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+              "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-002",
+              "itemSha256": "6f618c3d732dc9d20c4e7c95ddb0a29f9a7abf637acd844d21774d28eda233ef",
+              "documentSha256": "5ea0512d02b1f18f741c056a930472c0e14f59025a30667ad4ed50f5881aa31a",
+              "blobSha": "03e76e5aeafca7a47c805163faf6df2857b1daa1",
+              "path": "docs/auth-policies.md",
+              "startLine": 17,
+              "endLine": 23,
+              "segmentId": null,
+              "segmentSha256": null,
+              "segmentStartLine": null,
+              "segmentEndLine": null
+            }
+          },
+          {
+            "id": "rank-auth:docs/token-guide.md#토큰-오류-응답",
+            "group": "direct",
+            "mandatory": false,
+            "knowledge": {
+              "status": "unverified",
+              "confirmed": false
+            },
+            "selection": {
+              "matchedQueries": [
+                "R1",
+                "R2"
+              ]
+            },
+            "segment": null,
+            "ref": {
+              "handle": "<handle>",
+              "indexId": "<index-id>",
+              "indexGeneration": 1,
+              "sourceId": "rank-auth",
+              "projectId": "rank-auth",
+              "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+              "itemId": "rank-auth:docs/token-guide.md#토큰-오류-응답",
+              "itemSha256": "f74987a430434983ef882be3fdcde073aa83af05fc8af2d0bf90d31e24e23256",
+              "documentSha256": "8de07d682ccc4559e0a7442a1ff126ad86d2e6c66fff0329472e10787361207a",
+              "blobSha": "0bfab2d018b26273f1944ff0c182da9bb0f07d82",
+              "path": "docs/token-guide.md",
+              "startLine": 41,
+              "endLine": 43,
+              "segmentId": null,
+              "segmentSha256": null,
+              "segmentStartLine": null,
+              "segmentEndLine": null
+            }
+          }
+        ],
+        "limitations": [
+          {
+            "code": "budget-truncated"
+          },
+          {
+            "code": "keyword-only"
+          },
+          {
+            "code": "unconfirmed-results"
+          },
+          {
+            "code": "worktree-not-indexed"
+          }
+        ],
+        "budget": {
+          "truncated": true,
+          "exceeded": false,
+          "omitted": [
+            {
+              "id": "rank-auth:docs/token-guide.md#토큰-운영-안내",
+              "segmentId": null,
+              "group": "direct",
+              "directRank": 5
+            }
+          ],
+          "omittedCount": 1
+        }
+      }
+    },
+    {
+      "id": "get-segment-by-ref",
+      "note": "검색 응답의 ref로 같은 세대의 조각을 다시 읽는다. expect가 색인 값과 다르면 hash-mismatch다.",
+      "argv": [
+        "get",
+        "--request",
+        "-"
+      ],
+      "request": {
+        "responseVersion": 2,
+        "id": "rank-auth:docs/token-guide.md#토큰-수명-주기#2",
+        "profile": "code",
+        "scope": {
+          "projects": [
+            "rank-auth"
+          ]
+        },
+        "version": {
+          "generation": 1,
+          "indexId": "<index-id>",
+          "exact": true
+        },
+        "expect": {
+          "itemSha256": "c67da925da20982450e95eaa5c8fdd3a716807d6b77d6b6b822b9a4329ff7adf",
+          "segmentSha256": "aa0f504b980f83aa7a46fb69ae901c11b782f01f6b226d6f5f01f308816db2c9"
+        }
+      },
+      "exitCode": 0,
+      "stdout": {
+        "schema": "agent-knowledge.get",
+        "schemaVersion": 2,
+        "status": "ok",
+        "item": {
+          "id": "rank-auth:docs/token-guide.md#토큰-수명-주기",
+          "group": "lookup",
+          "segment": {
+            "id": "rank-auth:docs/token-guide.md#토큰-수명-주기#2",
+            "ordinal": 2,
+            "count": 2,
+            "startLine": 27,
+            "endLine": 39,
+            "sha256": "aa0f504b980f83aa7a46fb69ae901c11b782f01f6b226d6f5f01f308816db2c9",
+            "heading": null
+          },
+          "ref": {
+            "handle": "<handle>",
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "sourceId": "rank-auth",
+            "projectId": "rank-auth",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemId": "rank-auth:docs/token-guide.md#토큰-수명-주기",
+            "itemSha256": "c67da925da20982450e95eaa5c8fdd3a716807d6b77d6b6b822b9a4329ff7adf",
+            "documentSha256": "8de07d682ccc4559e0a7442a1ff126ad86d2e6c66fff0329472e10787361207a",
+            "blobSha": "0bfab2d018b26273f1944ff0c182da9bb0f07d82",
+            "path": "docs/token-guide.md",
+            "startLine": 9,
+            "endLine": 39,
+            "segmentId": "rank-auth:docs/token-guide.md#토큰-수명-주기#2",
+            "segmentSha256": "aa0f504b980f83aa7a46fb69ae901c11b782f01f6b226d6f5f01f308816db2c9",
+            "segmentStartLine": 27,
+            "segmentEndLine": 39
+          }
+        }
+      }
+    },
+    {
+      "id": "get-omitted-item",
+      "note": "budget.omitted의 항목을 같은 세대에서 읽는다.",
+      "argv": [
+        "get",
+        "--request",
+        "-"
+      ],
+      "request": {
+        "responseVersion": 2,
+        "id": "rank-auth:docs/token-guide.md#토큰-운영-안내",
+        "profile": "code",
+        "scope": {
+          "projects": [
+            "rank-auth"
+          ]
+        },
+        "version": {
+          "generation": 1,
+          "indexId": "<index-id>",
+          "exact": true
+        }
+      },
+      "exitCode": 0,
+      "stdout": {
+        "schema": "agent-knowledge.get",
+        "schemaVersion": 2,
+        "status": "ok",
+        "item": {
+          "id": "rank-auth:docs/token-guide.md#토큰-운영-안내",
+          "group": "lookup",
+          "ref": {
+            "handle": "<handle>",
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "sourceId": "rank-auth",
+            "projectId": "rank-auth",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemId": "rank-auth:docs/token-guide.md#토큰-운영-안내",
+            "itemSha256": "09a77dcc6fd36a3704b8316075d3a0f52a0fda1f055bebd932d720f71bca0735",
+            "documentSha256": "8de07d682ccc4559e0a7442a1ff126ad86d2e6c66fff0329472e10787361207a",
+            "blobSha": "0bfab2d018b26273f1944ff0c182da9bb0f07d82",
+            "path": "docs/token-guide.md",
+            "startLine": 5,
+            "endLine": 7,
+            "segmentId": null,
+            "segmentSha256": null,
+            "segmentStartLine": null,
+            "segmentEndLine": null
+          }
+        }
+      }
+    },
+    {
+      "id": "verify-refs",
+      "note": "항목 ref와 조각 ref를 그대로 넘긴다. 종료 코드는 판정과 상관없이 0이고 판정은 results[].reference.verdict로 읽는다.",
+      "argv": [
+        "verify",
+        "--request",
+        "-"
+      ],
+      "request": {
+        "profile": "code",
+        "scope": {
+          "projects": [
+            "rank-auth"
+          ]
+        },
+        "references": [
+          {
+            "handle": "<handle>",
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "sourceId": "rank-auth",
+            "projectId": "rank-auth",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b",
+            "documentSha256": "5ea0512d02b1f18f741c056a930472c0e14f59025a30667ad4ed50f5881aa31a",
+            "blobSha": "03e76e5aeafca7a47c805163faf6df2857b1daa1",
+            "path": "docs/auth-policies.md",
+            "startLine": 9,
+            "endLine": 15,
+            "segmentId": null,
+            "segmentSha256": null,
+            "segmentStartLine": null,
+            "segmentEndLine": null
+          },
+          {
+            "handle": "<handle>",
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "sourceId": "rank-auth",
+            "projectId": "rank-auth",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemId": "rank-auth:docs/token-guide.md#토큰-수명-주기",
+            "itemSha256": "c67da925da20982450e95eaa5c8fdd3a716807d6b77d6b6b822b9a4329ff7adf",
+            "documentSha256": "8de07d682ccc4559e0a7442a1ff126ad86d2e6c66fff0329472e10787361207a",
+            "blobSha": "0bfab2d018b26273f1944ff0c182da9bb0f07d82",
+            "path": "docs/token-guide.md",
+            "startLine": 9,
+            "endLine": 39,
+            "segmentId": "rank-auth:docs/token-guide.md#토큰-수명-주기#2",
+            "segmentSha256": "aa0f504b980f83aa7a46fb69ae901c11b782f01f6b226d6f5f01f308816db2c9",
+            "segmentStartLine": 27,
+            "segmentEndLine": 39
+          }
+        ]
+      },
+      "exitCode": 0,
+      "stdout": {
+        "schema": "agent-knowledge.verify",
+        "schemaVersion": 1,
+        "status": "ok",
+        "indexId": "<index-id>",
+        "against": {
+          "indexGeneration": 1,
+          "activeGeneration": 1
+        },
+        "results": [
+          {
+            "position": 0,
+            "handle": "<handle>",
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "reference": {
+              "verdict": "intact",
+              "mismatches": [],
+              "knowledge": {
+                "status": "confirmed_policy",
+                "confirmed": true
+              }
+            },
+            "current": {
+              "indexGeneration": 1,
+              "state": "same",
+              "segment": {
+                "state": "not-requested",
+                "segmentId": null,
+                "segmentSha256": null
+              }
+            }
+          },
+          {
+            "position": 1,
+            "handle": "<handle>",
+            "itemId": "rank-auth:docs/token-guide.md#토큰-수명-주기",
+            "reference": {
+              "verdict": "intact",
+              "mismatches": [],
+              "knowledge": {
+                "status": "unverified",
+                "confirmed": false
+              }
+            },
+            "current": {
+              "indexGeneration": 1,
+              "state": "same",
+              "segment": {
+                "state": "same",
+                "segmentId": "rank-auth:docs/token-guide.md#토큰-수명-주기#2",
+                "segmentSha256": "aa0f504b980f83aa7a46fb69ae901c11b782f01f6b226d6f5f01f308816db2c9"
+              }
+            }
+          }
+        ],
+        "summary": {
+          "total": 2,
+          "intact": 2,
+          "problems": 0,
+          "current": {
+            "same": 2,
+            "changed": 0,
+            "moved": 0,
+            "removed": 0
+          }
+        }
+      }
+    }
+  ]
+}

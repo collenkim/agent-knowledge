@@ -1,0 +1,3585 @@
+{
+  "schema": "agent-knowledge.handoff-cases",
+  "schemaVersion": 1,
+  "title": "master → code-agent 지식 인계(submit.payload.knowledge) 수신·송신 사례",
+  "contract": "code-agent.master submit.payload.knowledge",
+  "status": {
+    "1": "수신: code-agent 3c5bbac 구현. 송신: master-agent 217f37f에는 없다(217f37f의 handoffBlock은 형식 1이 아니고 보내지도 않는다).",
+    "2": "제안. 두 소비자가 구현을 커밋하고 이 사례로 확인하기 전까지 지원으로 표시하지 않는다.",
+    "submit": "제안. 3c5bbac에는 접수 범위 검사가 없다.",
+    "hello": "제안. hello 사례의 knowledge는 docs/integration.md hello 공지의 꼴이다. 3c5bbac hello에는 schemaVersion·mode·refs.supported·refs.accepted·refs.max만 있다."
+  },
+  "notes": [
+    "docs/integration.md의 '인계 형식'·'송신 결정'·'수신 확인과 실패 규칙'에 대응하는 정본 사례다. tests/handoff-contract.test.ts가 참조 구현(tests/handoff.ts)과 실제 CLI로 확인한다. 참조 구현이 통과해도 소비자 구현이 같다는 증명은 아니다.",
+    "수신은 세 단계다. expect는 꼴·형식 검사의 결과다. submit은 그다음 접수 범위 검사의 거절이고, 없으면 접수된다. verification은 접수된 참조를 receiver.scope로 생산자 verify에 넘긴 결과다.",
+    "reason은 code-agent 수신 오류의 detail.reason이다. code-agent 3c5bbac는 같은 경우를 invalid-request로 거절하지만 detail.reason을 싣지 않는다. 바이트 상한(knowledge-too-large)은 3c5bbac에 없다.",
+    "verification.refs의 cause는 원인 갈래이고 확인된 참조는 'verified'로 적는다(원인이 아니라 진행 게이트의 상태 이름). reason·recovery는 docs/integration.md 판정 표의 사유와 회복이고 mismatches는 verify가 돌려준 값 그대로다. 작업 트리 파일 대조는 이 저장소 밖이라 넣지 않았다.",
+    "v2-out-of-scope의 verification은 접수 범위 검사가 없는 수신자가 같은 참조를 확인할 때의 결과다. 생산자 verify도 범위 밖 항목을 not-found로만 보인다.",
+    "digest는 'sha256:' + sha256(정규 JSON {version, refs})다. refs는 정규화한 참조를 itemId, segmentId 순(UTF-16 코드 단위)으로 정렬한 것이다. 자리표시가 있는 형식 2 사례는 indexId가 실행마다 달라 digest를 적지 않고 v2-golden-digest가 글자 그대로의 값을 맞춘다.",
+    "hello 사례는 refPool의 생산자 ref(indexId·handle을 글자 그대로 둔 값)로 송신 결정을 낸다. auth-sha256-commit·auth-long-id는 송신 결정을 보이려고 만든 합성 참조이고 어떤 DB에도 없다.",
+    "자리표시 <index-id>, <index-id:other>, <handle>은 tests/contract.ts가 실행 때 바꾼다."
+  ],
+  "fixture": {
+    "workspace": "evals/fixtures/ranking-workspace",
+    "databases": [
+      "primary",
+      "other"
+    ]
+  },
+  "receiver": {
+    "profile": "code",
+    "scope": {
+      "projects": [
+        "rank-auth"
+      ]
+    },
+    "project": "rank-auth",
+    "sources": [
+      "rank-auth"
+    ],
+    "docs": [
+      "docs/auth-policies.md",
+      "docs/token-guide.md"
+    ]
+  },
+  "limits": {
+    "maxRefs": 20,
+    "maxBytes": 32768
+  },
+  "refPool": {
+    "auth-item": {
+      "handle": "ak-69a35f3ff95562488d91",
+      "indexId": "17f75cc6617715a74285ff8903f05ce8",
+      "indexGeneration": 1,
+      "sourceId": "rank-auth",
+      "projectId": "rank-auth",
+      "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+      "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+      "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b",
+      "documentSha256": "5ea0512d02b1f18f741c056a930472c0e14f59025a30667ad4ed50f5881aa31a",
+      "blobSha": "03e76e5aeafca7a47c805163faf6df2857b1daa1",
+      "path": "docs/auth-policies.md",
+      "startLine": 9,
+      "endLine": 15,
+      "segmentId": null,
+      "segmentSha256": null,
+      "segmentStartLine": null,
+      "segmentEndLine": null
+    },
+    "token-segment-1": {
+      "handle": "ak-60692d5386f4c51c0635",
+      "indexId": "17f75cc6617715a74285ff8903f05ce8",
+      "indexGeneration": 1,
+      "sourceId": "rank-auth",
+      "projectId": "rank-auth",
+      "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+      "itemId": "rank-auth:docs/token-guide.md#토큰-수명-주기",
+      "itemSha256": "c67da925da20982450e95eaa5c8fdd3a716807d6b77d6b6b822b9a4329ff7adf",
+      "documentSha256": "8de07d682ccc4559e0a7442a1ff126ad86d2e6c66fff0329472e10787361207a",
+      "blobSha": "0bfab2d018b26273f1944ff0c182da9bb0f07d82",
+      "path": "docs/token-guide.md",
+      "startLine": 9,
+      "endLine": 39,
+      "segmentId": "rank-auth:docs/token-guide.md#토큰-수명-주기#1",
+      "segmentSha256": "a6157256a5dcf442fd86a7f33d43c458b566162b8a17f3840babbce852aa61c3",
+      "segmentStartLine": 9,
+      "segmentEndLine": 25
+    },
+    "token-segment-2": {
+      "handle": "ak-fb296c4d8241080dbf7e",
+      "indexId": "17f75cc6617715a74285ff8903f05ce8",
+      "indexGeneration": 1,
+      "sourceId": "rank-auth",
+      "projectId": "rank-auth",
+      "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+      "itemId": "rank-auth:docs/token-guide.md#토큰-수명-주기",
+      "itemSha256": "c67da925da20982450e95eaa5c8fdd3a716807d6b77d6b6b822b9a4329ff7adf",
+      "documentSha256": "8de07d682ccc4559e0a7442a1ff126ad86d2e6c66fff0329472e10787361207a",
+      "blobSha": "0bfab2d018b26273f1944ff0c182da9bb0f07d82",
+      "path": "docs/token-guide.md",
+      "startLine": 9,
+      "endLine": 39,
+      "segmentId": "rank-auth:docs/token-guide.md#토큰-수명-주기#2",
+      "segmentSha256": "aa0f504b980f83aa7a46fb69ae901c11b782f01f6b226d6f5f01f308816db2c9",
+      "segmentStartLine": 27,
+      "segmentEndLine": 39
+    },
+    "billing-item": {
+      "handle": "ak-f7d5b65ae234ee1ba5d9",
+      "indexId": "17f75cc6617715a74285ff8903f05ce8",
+      "indexGeneration": 1,
+      "sourceId": "rank-billing",
+      "projectId": "rank-billing",
+      "commit": "a8c8055ef51f40a7f1962139014aab58b6c0a0e1",
+      "itemId": "rank-billing:docs/billing-architecture.md#정산-배치-구성",
+      "itemSha256": "b8a203f6bad92fb801b1fe6a690a3c89144ef8adb2fe489144d5fc32044b5f4a",
+      "documentSha256": "5a8aa7b9115dd41ae683218653b1732798359d3d27fca9e184b7022bb78588ac",
+      "blobSha": "c01522cdcc704eba9ec3853aad2eea68b7872e1a",
+      "path": "docs/billing-architecture.md",
+      "startLine": 13,
+      "endLine": 52,
+      "segmentId": null,
+      "segmentSha256": null,
+      "segmentStartLine": null,
+      "segmentEndLine": null
+    },
+    "auth-sha256-commit": {
+      "handle": "ak-69a35f3ff95562488d91",
+      "indexId": "17f75cc6617715a74285ff8903f05ce8",
+      "indexGeneration": 1,
+      "sourceId": "rank-auth",
+      "projectId": "rank-auth",
+      "commit": "c0ffeec0ffeec0ffeec0ffeec0ffeec0ffeec0ffeec0ffeec0ffeec0ffeec0ff",
+      "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+      "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b",
+      "documentSha256": "5ea0512d02b1f18f741c056a930472c0e14f59025a30667ad4ed50f5881aa31a",
+      "blobSha": "03e76e5aeafca7a47c805163faf6df2857b1daa1",
+      "path": "docs/auth-policies.md",
+      "startLine": 9,
+      "endLine": 15,
+      "segmentId": null,
+      "segmentSha256": null,
+      "segmentStartLine": null,
+      "segmentEndLine": null
+    },
+    "auth-long-id": {
+      "handle": "ak-6d04a37c0b2cef15b540",
+      "indexId": "17f75cc6617715a74285ff8903f05ce8",
+      "indexGeneration": 1,
+      "sourceId": "rank-auth",
+      "projectId": "rank-auth",
+      "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+      "itemId": "rank-auth:docs/auth-policies.md#긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목",
+      "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b",
+      "documentSha256": "5ea0512d02b1f18f741c056a930472c0e14f59025a30667ad4ed50f5881aa31a",
+      "blobSha": "03e76e5aeafca7a47c805163faf6df2857b1daa1",
+      "path": "docs/auth-policies.md",
+      "startLine": 9,
+      "endLine": 15,
+      "segmentId": null,
+      "segmentSha256": null,
+      "segmentStartLine": null,
+      "segmentEndLine": null
+    }
+  },
+  "hello": [
+    {
+      "id": "no-refs",
+      "knowledge": {
+        "schemaVersion": 1,
+        "mode": "enabled",
+        "refs": {
+          "supported": true,
+          "accepted": true,
+          "max": 20,
+          "versions": [
+            1,
+            2
+          ],
+          "supportedVersions": [
+            1,
+            2
+          ],
+          "maxBytes": 32768,
+          "requiredGate": true,
+          "requiredDefault": true,
+          "scope": "registered-docs"
+        },
+        "gate": {
+          "resume": "knowledge-blocked",
+          "actions": [
+            "knowledge-reverify",
+            "knowledge-replan"
+          ],
+          "causes": [
+            "unverified",
+            "hash-mismatch",
+            "identity-mismatch",
+            "expired",
+            "source-changed",
+            "source-deleted",
+            "scope",
+            "adapter"
+          ],
+          "ttlSeconds": 86400,
+          "command": {
+            "type": "knowledge",
+            "actions": [
+              "verify",
+              "replace"
+            ]
+          }
+        }
+      },
+      "senderVersions": [
+        1,
+        2
+      ],
+      "refs": [],
+      "expect": {
+        "action": "none"
+      }
+    },
+    {
+      "id": "receiver-without-knowledge",
+      "note": "hello에 knowledge가 없는 빌드다.",
+      "knowledge": null,
+      "senderVersions": [
+        1,
+        2
+      ],
+      "refs": [
+        {
+          "use": "auth-item",
+          "required": true,
+          "role": "project"
+        }
+      ],
+      "expect": {
+        "action": "hold",
+        "reason": "knowledge-handoff-unsupported"
+      }
+    },
+    {
+      "id": "receiver-not-accepted-required",
+      "note": "shadow·off·플러그인 미등록이면 accepted가 false다.",
+      "knowledge": {
+        "schemaVersion": 1,
+        "mode": "shadow",
+        "refs": {
+          "supported": true,
+          "accepted": false,
+          "max": 20,
+          "versions": [
+            1,
+            2
+          ],
+          "supportedVersions": [
+            1,
+            2
+          ],
+          "maxBytes": 32768,
+          "requiredGate": true,
+          "requiredDefault": true,
+          "scope": "registered-docs"
+        },
+        "gate": {
+          "resume": "knowledge-blocked",
+          "actions": [
+            "knowledge-reverify",
+            "knowledge-replan"
+          ],
+          "causes": [
+            "unverified",
+            "hash-mismatch",
+            "identity-mismatch",
+            "expired",
+            "source-changed",
+            "source-deleted",
+            "scope",
+            "adapter"
+          ],
+          "ttlSeconds": 86400,
+          "command": {
+            "type": "knowledge",
+            "actions": [
+              "verify",
+              "replace"
+            ]
+          }
+        }
+      },
+      "senderVersions": [
+        1,
+        2
+      ],
+      "refs": [
+        {
+          "use": "auth-item",
+          "required": true,
+          "role": "project"
+        }
+      ],
+      "expect": {
+        "action": "hold",
+        "reason": "knowledge-handoff-not-accepted"
+      }
+    },
+    {
+      "id": "receiver-not-accepted-optional",
+      "knowledge": {
+        "schemaVersion": 1,
+        "mode": "off",
+        "refs": {
+          "supported": true,
+          "accepted": false,
+          "max": 20,
+          "versions": [
+            1
+          ],
+          "supportedVersions": [
+            1,
+            2
+          ],
+          "maxBytes": 32768,
+          "requiredGate": true,
+          "requiredDefault": true,
+          "scope": "registered-docs"
+        },
+        "gate": {
+          "resume": "knowledge-blocked",
+          "actions": [
+            "knowledge-reverify",
+            "knowledge-replan"
+          ],
+          "causes": [
+            "unverified",
+            "hash-mismatch",
+            "identity-mismatch",
+            "expired",
+            "source-changed",
+            "source-deleted",
+            "scope",
+            "adapter"
+          ],
+          "ttlSeconds": 86400,
+          "command": {
+            "type": "knowledge",
+            "actions": [
+              "verify",
+              "replace"
+            ]
+          }
+        }
+      },
+      "senderVersions": [
+        1,
+        2
+      ],
+      "refs": [
+        {
+          "use": "auth-item",
+          "required": false,
+          "role": "project"
+        },
+        {
+          "use": "token-segment-2",
+          "required": false,
+          "role": "project"
+        }
+      ],
+      "expect": {
+        "action": "omit",
+        "reason": "knowledge-handoff-not-accepted",
+        "omitted": [
+          {
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "reason": "knowledge-handoff-not-accepted"
+          },
+          {
+            "itemId": "rank-auth:docs/token-guide.md#토큰-수명-주기",
+            "segmentId": "rank-auth:docs/token-guide.md#토큰-수명-주기#2",
+            "reason": "knowledge-handoff-not-accepted"
+          }
+        ]
+      }
+    },
+    {
+      "id": "receiver-3c5bbac-required",
+      "note": "code-agent 3c5bbac의 hello다. versions가 없으면 [1], requiredGate가 없으면 false다. required를 받아도 진행을 막지 않는 빌드이므로 보내지 않고 그 작업을 보류한다.",
+      "knowledge": {
+        "schemaVersion": 1,
+        "mode": "enabled",
+        "refs": {
+          "supported": true,
+          "accepted": true,
+          "max": 20
+        }
+      },
+      "senderVersions": [
+        1,
+        2
+      ],
+      "refs": [
+        {
+          "use": "auth-item",
+          "required": true,
+          "role": "project"
+        },
+        {
+          "use": "token-segment-2",
+          "required": false,
+          "role": "project"
+        }
+      ],
+      "expect": {
+        "action": "hold",
+        "reason": "knowledge-handoff-ungated"
+      }
+    },
+    {
+      "id": "receiver-3c5bbac-optional",
+      "note": "선택 참조만 있으면 형식 1로 보낸다. 같은 항목의 조각 둘은 부모 항목 참조 하나가 되고, 64자 commit은 형식 1로 나타낼 수 없어 뺀다.",
+      "knowledge": {
+        "schemaVersion": 1,
+        "mode": "enabled",
+        "refs": {
+          "supported": true,
+          "accepted": true,
+          "max": 20
+        }
+      },
+      "senderVersions": [
+        1,
+        2
+      ],
+      "refs": [
+        {
+          "use": "auth-item",
+          "required": false,
+          "role": "project"
+        },
+        {
+          "use": "token-segment-1",
+          "required": false,
+          "role": "project"
+        },
+        {
+          "use": "token-segment-2",
+          "required": false,
+          "role": "project"
+        },
+        {
+          "use": "auth-sha256-commit",
+          "required": false,
+          "role": "project"
+        }
+      ],
+      "expect": {
+        "action": "send",
+        "version": 1,
+        "refs": [
+          {
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "required": false
+          },
+          {
+            "itemId": "rank-auth:docs/token-guide.md#토큰-수명-주기",
+            "required": false
+          }
+        ],
+        "omitted": [
+          {
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "reason": "commit-format"
+          }
+        ],
+        "digest": "sha256:d4fa5c09043e39ff38069aff9fd6cc4d49cd3dd923923fb00b7ad7cabb4c25a8"
+      }
+    },
+    {
+      "id": "receiver-v1-registration-required",
+      "note": "형식 2를 읽는 빌드지만 등록이 색인 식별 대조를 협의하지 않아 지금은 형식 1만 받는다(versions [1], supportedVersions [1,2]).",
+      "knowledge": {
+        "schemaVersion": 1,
+        "mode": "enabled",
+        "refs": {
+          "supported": true,
+          "accepted": true,
+          "max": 20,
+          "versions": [
+            1
+          ],
+          "supportedVersions": [
+            1,
+            2
+          ],
+          "maxBytes": 32768,
+          "requiredGate": true,
+          "requiredDefault": true,
+          "scope": "registered-docs"
+        },
+        "gate": {
+          "resume": "knowledge-blocked",
+          "actions": [
+            "knowledge-reverify",
+            "knowledge-replan"
+          ],
+          "causes": [
+            "unverified",
+            "hash-mismatch",
+            "identity-mismatch",
+            "expired",
+            "source-changed",
+            "source-deleted",
+            "scope",
+            "adapter"
+          ],
+          "ttlSeconds": 86400,
+          "command": {
+            "type": "knowledge",
+            "actions": [
+              "verify",
+              "replace"
+            ]
+          }
+        }
+      },
+      "senderVersions": [
+        1,
+        2
+      ],
+      "refs": [
+        {
+          "use": "auth-item",
+          "required": true,
+          "role": "project"
+        }
+      ],
+      "expect": {
+        "action": "hold",
+        "reason": "knowledge-handoff-version"
+      }
+    },
+    {
+      "id": "receiver-v1-registration-optional",
+      "knowledge": {
+        "schemaVersion": 1,
+        "mode": "enabled",
+        "refs": {
+          "supported": true,
+          "accepted": true,
+          "max": 20,
+          "versions": [
+            1
+          ],
+          "supportedVersions": [
+            1,
+            2
+          ],
+          "maxBytes": 32768,
+          "requiredGate": true,
+          "requiredDefault": true,
+          "scope": "registered-docs"
+        },
+        "gate": {
+          "resume": "knowledge-blocked",
+          "actions": [
+            "knowledge-reverify",
+            "knowledge-replan"
+          ],
+          "causes": [
+            "unverified",
+            "hash-mismatch",
+            "identity-mismatch",
+            "expired",
+            "source-changed",
+            "source-deleted",
+            "scope",
+            "adapter"
+          ],
+          "ttlSeconds": 86400,
+          "command": {
+            "type": "knowledge",
+            "actions": [
+              "verify",
+              "replace"
+            ]
+          }
+        }
+      },
+      "senderVersions": [
+        1,
+        2
+      ],
+      "refs": [
+        {
+          "use": "token-segment-1",
+          "required": false,
+          "role": "project"
+        },
+        {
+          "use": "token-segment-2",
+          "required": false,
+          "role": "project"
+        }
+      ],
+      "expect": {
+        "action": "send",
+        "version": 1,
+        "refs": [
+          {
+            "itemId": "rank-auth:docs/token-guide.md#토큰-수명-주기",
+            "required": false
+          }
+        ],
+        "omitted": [],
+        "digest": "sha256:cb1f5af90292d4ab7c3faee77646b5303b475ce12d2da3debb109917dffd7650"
+      }
+    },
+    {
+      "id": "receiver-gated",
+      "note": "허용 연결 프로젝트 항목은 받는 쪽이 확인할 수 없으므로 선택이면 뺀다.",
+      "knowledge": {
+        "schemaVersion": 1,
+        "mode": "enabled",
+        "refs": {
+          "supported": true,
+          "accepted": true,
+          "max": 20,
+          "versions": [
+            1,
+            2
+          ],
+          "supportedVersions": [
+            1,
+            2
+          ],
+          "maxBytes": 32768,
+          "requiredGate": true,
+          "requiredDefault": true,
+          "scope": "registered-docs"
+        },
+        "gate": {
+          "resume": "knowledge-blocked",
+          "actions": [
+            "knowledge-reverify",
+            "knowledge-replan"
+          ],
+          "causes": [
+            "unverified",
+            "hash-mismatch",
+            "identity-mismatch",
+            "expired",
+            "source-changed",
+            "source-deleted",
+            "scope",
+            "adapter"
+          ],
+          "ttlSeconds": 86400,
+          "command": {
+            "type": "knowledge",
+            "actions": [
+              "verify",
+              "replace"
+            ]
+          }
+        }
+      },
+      "senderVersions": [
+        1,
+        2
+      ],
+      "refs": [
+        {
+          "use": "auth-item",
+          "required": true,
+          "role": "project"
+        },
+        {
+          "use": "token-segment-2",
+          "required": false,
+          "role": "project"
+        },
+        {
+          "use": "billing-item",
+          "required": false,
+          "role": "link"
+        }
+      ],
+      "expect": {
+        "action": "send",
+        "version": 2,
+        "refs": [
+          {
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "required": true
+          },
+          {
+            "itemId": "rank-auth:docs/token-guide.md#토큰-수명-주기",
+            "segmentId": "rank-auth:docs/token-guide.md#토큰-수명-주기#2",
+            "required": false
+          }
+        ],
+        "omitted": [
+          {
+            "itemId": "rank-billing:docs/billing-architecture.md#정산-배치-구성",
+            "reason": "receiver-scope"
+          }
+        ],
+        "digest": "sha256:f3a6f95aa3e960338084cc3048c7e10b171f14c9ff6ef9c31c427f75ae96f083"
+      }
+    },
+    {
+      "id": "link-required",
+      "note": "허용 연결 항목을 required로 둔 작업은 범위를 넓히지 않고 보류한다. 재분석·계획 교체로 required에서 빼야 한다.",
+      "knowledge": {
+        "schemaVersion": 1,
+        "mode": "enabled",
+        "refs": {
+          "supported": true,
+          "accepted": true,
+          "max": 20,
+          "versions": [
+            1,
+            2
+          ],
+          "supportedVersions": [
+            1,
+            2
+          ],
+          "maxBytes": 32768,
+          "requiredGate": true,
+          "requiredDefault": true,
+          "scope": "registered-docs"
+        },
+        "gate": {
+          "resume": "knowledge-blocked",
+          "actions": [
+            "knowledge-reverify",
+            "knowledge-replan"
+          ],
+          "causes": [
+            "unverified",
+            "hash-mismatch",
+            "identity-mismatch",
+            "expired",
+            "source-changed",
+            "source-deleted",
+            "scope",
+            "adapter"
+          ],
+          "ttlSeconds": 86400,
+          "command": {
+            "type": "knowledge",
+            "actions": [
+              "verify",
+              "replace"
+            ]
+          }
+        }
+      },
+      "senderVersions": [
+        1,
+        2
+      ],
+      "refs": [
+        {
+          "use": "auth-item",
+          "required": true,
+          "role": "project"
+        },
+        {
+          "use": "billing-item",
+          "required": true,
+          "role": "link"
+        }
+      ],
+      "expect": {
+        "action": "hold",
+        "reason": "knowledge-handoff-scope"
+      }
+    },
+    {
+      "id": "sender-v1-only-required",
+      "note": "보내는 쪽이 형식 2를 만들지 못하면 required를 형식 1로 내려 보내지 않는다.",
+      "knowledge": {
+        "schemaVersion": 1,
+        "mode": "enabled",
+        "refs": {
+          "supported": true,
+          "accepted": true,
+          "max": 20,
+          "versions": [
+            1,
+            2
+          ],
+          "supportedVersions": [
+            1,
+            2
+          ],
+          "maxBytes": 32768,
+          "requiredGate": true,
+          "requiredDefault": true,
+          "scope": "registered-docs"
+        },
+        "gate": {
+          "resume": "knowledge-blocked",
+          "actions": [
+            "knowledge-reverify",
+            "knowledge-replan"
+          ],
+          "causes": [
+            "unverified",
+            "hash-mismatch",
+            "identity-mismatch",
+            "expired",
+            "source-changed",
+            "source-deleted",
+            "scope",
+            "adapter"
+          ],
+          "ttlSeconds": 86400,
+          "command": {
+            "type": "knowledge",
+            "actions": [
+              "verify",
+              "replace"
+            ]
+          }
+        }
+      },
+      "senderVersions": [
+        1
+      ],
+      "refs": [
+        {
+          "use": "auth-item",
+          "required": true,
+          "role": "project"
+        }
+      ],
+      "expect": {
+        "action": "hold",
+        "reason": "knowledge-handoff-version"
+      }
+    },
+    {
+      "id": "sender-v1-only-optional",
+      "knowledge": {
+        "schemaVersion": 1,
+        "mode": "enabled",
+        "refs": {
+          "supported": true,
+          "accepted": true,
+          "max": 20,
+          "versions": [
+            1,
+            2
+          ],
+          "supportedVersions": [
+            1,
+            2
+          ],
+          "maxBytes": 32768,
+          "requiredGate": true,
+          "requiredDefault": true,
+          "scope": "registered-docs"
+        },
+        "gate": {
+          "resume": "knowledge-blocked",
+          "actions": [
+            "knowledge-reverify",
+            "knowledge-replan"
+          ],
+          "causes": [
+            "unverified",
+            "hash-mismatch",
+            "identity-mismatch",
+            "expired",
+            "source-changed",
+            "source-deleted",
+            "scope",
+            "adapter"
+          ],
+          "ttlSeconds": 86400,
+          "command": {
+            "type": "knowledge",
+            "actions": [
+              "verify",
+              "replace"
+            ]
+          }
+        }
+      },
+      "senderVersions": [
+        1
+      ],
+      "refs": [
+        {
+          "use": "auth-item",
+          "required": false,
+          "role": "project"
+        }
+      ],
+      "expect": {
+        "action": "send",
+        "version": 1,
+        "refs": [
+          {
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "required": false
+          }
+        ],
+        "omitted": [],
+        "digest": "sha256:253209f71549a8730895bf2977da6bcca502e1faedba294758bd4a6868173cdc"
+      }
+    },
+    {
+      "id": "required-over-max",
+      "note": "required가 상한을 넘으면 자르지 않고 보류한다.",
+      "knowledge": {
+        "schemaVersion": 1,
+        "mode": "enabled",
+        "refs": {
+          "supported": true,
+          "accepted": true,
+          "max": 1,
+          "versions": [
+            1,
+            2
+          ],
+          "supportedVersions": [
+            1,
+            2
+          ],
+          "maxBytes": 32768,
+          "requiredGate": true,
+          "requiredDefault": true,
+          "scope": "registered-docs"
+        },
+        "gate": {
+          "resume": "knowledge-blocked",
+          "actions": [
+            "knowledge-reverify",
+            "knowledge-replan"
+          ],
+          "causes": [
+            "unverified",
+            "hash-mismatch",
+            "identity-mismatch",
+            "expired",
+            "source-changed",
+            "source-deleted",
+            "scope",
+            "adapter"
+          ],
+          "ttlSeconds": 86400,
+          "command": {
+            "type": "knowledge",
+            "actions": [
+              "verify",
+              "replace"
+            ]
+          }
+        }
+      },
+      "senderVersions": [
+        1,
+        2
+      ],
+      "refs": [
+        {
+          "use": "auth-item",
+          "required": true,
+          "role": "project"
+        },
+        {
+          "use": "token-segment-2",
+          "required": true,
+          "role": "project"
+        }
+      ],
+      "expect": {
+        "action": "hold",
+        "reason": "knowledge-handoff-limit"
+      }
+    },
+    {
+      "id": "optional-trimmed-by-max",
+      "note": "required를 먼저 두고 선택 참조를 뒤에서부터 뺀다.",
+      "knowledge": {
+        "schemaVersion": 1,
+        "mode": "enabled",
+        "refs": {
+          "supported": true,
+          "accepted": true,
+          "max": 2,
+          "versions": [
+            1,
+            2
+          ],
+          "supportedVersions": [
+            1,
+            2
+          ],
+          "maxBytes": 32768,
+          "requiredGate": true,
+          "requiredDefault": true,
+          "scope": "registered-docs"
+        },
+        "gate": {
+          "resume": "knowledge-blocked",
+          "actions": [
+            "knowledge-reverify",
+            "knowledge-replan"
+          ],
+          "causes": [
+            "unverified",
+            "hash-mismatch",
+            "identity-mismatch",
+            "expired",
+            "source-changed",
+            "source-deleted",
+            "scope",
+            "adapter"
+          ],
+          "ttlSeconds": 86400,
+          "command": {
+            "type": "knowledge",
+            "actions": [
+              "verify",
+              "replace"
+            ]
+          }
+        }
+      },
+      "senderVersions": [
+        1,
+        2
+      ],
+      "refs": [
+        {
+          "use": "token-segment-1",
+          "required": false,
+          "role": "project"
+        },
+        {
+          "use": "auth-item",
+          "required": true,
+          "role": "project"
+        },
+        {
+          "use": "token-segment-2",
+          "required": false,
+          "role": "project"
+        }
+      ],
+      "expect": {
+        "action": "send",
+        "version": 2,
+        "refs": [
+          {
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "required": true
+          },
+          {
+            "itemId": "rank-auth:docs/token-guide.md#토큰-수명-주기",
+            "segmentId": "rank-auth:docs/token-guide.md#토큰-수명-주기#1",
+            "required": false
+          }
+        ],
+        "omitted": [
+          {
+            "itemId": "rank-auth:docs/token-guide.md#토큰-수명-주기",
+            "segmentId": "rank-auth:docs/token-guide.md#토큰-수명-주기#2",
+            "reason": "receiver-limit"
+          }
+        ],
+        "digest": "sha256:3189581891ee36442bbe5c1d7123118498ff32b29252373bb22dfc6b77963863"
+      }
+    },
+    {
+      "id": "required-over-max-bytes",
+      "knowledge": {
+        "schemaVersion": 1,
+        "mode": "enabled",
+        "refs": {
+          "supported": true,
+          "accepted": true,
+          "max": 20,
+          "versions": [
+            1,
+            2
+          ],
+          "supportedVersions": [
+            1,
+            2
+          ],
+          "maxBytes": 1200,
+          "requiredGate": true,
+          "requiredDefault": true,
+          "scope": "registered-docs"
+        },
+        "gate": {
+          "resume": "knowledge-blocked",
+          "actions": [
+            "knowledge-reverify",
+            "knowledge-replan"
+          ],
+          "causes": [
+            "unverified",
+            "hash-mismatch",
+            "identity-mismatch",
+            "expired",
+            "source-changed",
+            "source-deleted",
+            "scope",
+            "adapter"
+          ],
+          "ttlSeconds": 86400,
+          "command": {
+            "type": "knowledge",
+            "actions": [
+              "verify",
+              "replace"
+            ]
+          }
+        }
+      },
+      "senderVersions": [
+        1,
+        2
+      ],
+      "refs": [
+        {
+          "use": "auth-item",
+          "required": true,
+          "role": "project"
+        },
+        {
+          "use": "token-segment-2",
+          "required": true,
+          "role": "project"
+        }
+      ],
+      "expect": {
+        "action": "hold",
+        "reason": "knowledge-handoff-limit"
+      }
+    },
+    {
+      "id": "optional-trimmed-by-bytes",
+      "knowledge": {
+        "schemaVersion": 1,
+        "mode": "enabled",
+        "refs": {
+          "supported": true,
+          "accepted": true,
+          "max": 20,
+          "versions": [
+            1,
+            2
+          ],
+          "supportedVersions": [
+            1,
+            2
+          ],
+          "maxBytes": 1200,
+          "requiredGate": true,
+          "requiredDefault": true,
+          "scope": "registered-docs"
+        },
+        "gate": {
+          "resume": "knowledge-blocked",
+          "actions": [
+            "knowledge-reverify",
+            "knowledge-replan"
+          ],
+          "causes": [
+            "unverified",
+            "hash-mismatch",
+            "identity-mismatch",
+            "expired",
+            "source-changed",
+            "source-deleted",
+            "scope",
+            "adapter"
+          ],
+          "ttlSeconds": 86400,
+          "command": {
+            "type": "knowledge",
+            "actions": [
+              "verify",
+              "replace"
+            ]
+          }
+        }
+      },
+      "senderVersions": [
+        1,
+        2
+      ],
+      "refs": [
+        {
+          "use": "auth-item",
+          "required": true,
+          "role": "project"
+        },
+        {
+          "use": "token-segment-2",
+          "required": false,
+          "role": "project"
+        }
+      ],
+      "expect": {
+        "action": "send",
+        "version": 2,
+        "refs": [
+          {
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "required": true
+          }
+        ],
+        "omitted": [
+          {
+            "itemId": "rank-auth:docs/token-guide.md#토큰-수명-주기",
+            "segmentId": "rank-auth:docs/token-guide.md#토큰-수명-주기#2",
+            "reason": "receiver-limit"
+          }
+        ],
+        "digest": "sha256:578ffe501dfa691b647b4bc38fa5f0d6c22da6c672288d0000ca2d9dc13fda67"
+      }
+    },
+    {
+      "id": "required-unrepresentable",
+      "note": "수신 파서가 거절할 참조(512자를 넘는 itemId)는 보내지 않는다. required면 보류한다.",
+      "knowledge": {
+        "schemaVersion": 1,
+        "mode": "enabled",
+        "refs": {
+          "supported": true,
+          "accepted": true,
+          "max": 20,
+          "versions": [
+            1,
+            2
+          ],
+          "supportedVersions": [
+            1,
+            2
+          ],
+          "maxBytes": 32768,
+          "requiredGate": true,
+          "requiredDefault": true,
+          "scope": "registered-docs"
+        },
+        "gate": {
+          "resume": "knowledge-blocked",
+          "actions": [
+            "knowledge-reverify",
+            "knowledge-replan"
+          ],
+          "causes": [
+            "unverified",
+            "hash-mismatch",
+            "identity-mismatch",
+            "expired",
+            "source-changed",
+            "source-deleted",
+            "scope",
+            "adapter"
+          ],
+          "ttlSeconds": 86400,
+          "command": {
+            "type": "knowledge",
+            "actions": [
+              "verify",
+              "replace"
+            ]
+          }
+        }
+      },
+      "senderVersions": [
+        1,
+        2
+      ],
+      "refs": [
+        {
+          "use": "auth-long-id",
+          "required": true,
+          "role": "project"
+        }
+      ],
+      "expect": {
+        "action": "hold",
+        "reason": "knowledge-handoff-unrepresentable"
+      }
+    },
+    {
+      "id": "optional-unrepresentable",
+      "knowledge": {
+        "schemaVersion": 1,
+        "mode": "enabled",
+        "refs": {
+          "supported": true,
+          "accepted": true,
+          "max": 20,
+          "versions": [
+            1,
+            2
+          ],
+          "supportedVersions": [
+            1,
+            2
+          ],
+          "maxBytes": 32768,
+          "requiredGate": true,
+          "requiredDefault": true,
+          "scope": "registered-docs"
+        },
+        "gate": {
+          "resume": "knowledge-blocked",
+          "actions": [
+            "knowledge-reverify",
+            "knowledge-replan"
+          ],
+          "causes": [
+            "unverified",
+            "hash-mismatch",
+            "identity-mismatch",
+            "expired",
+            "source-changed",
+            "source-deleted",
+            "scope",
+            "adapter"
+          ],
+          "ttlSeconds": 86400,
+          "command": {
+            "type": "knowledge",
+            "actions": [
+              "verify",
+              "replace"
+            ]
+          }
+        }
+      },
+      "senderVersions": [
+        1,
+        2
+      ],
+      "refs": [
+        {
+          "use": "auth-item",
+          "required": false,
+          "role": "project"
+        },
+        {
+          "use": "auth-long-id",
+          "required": false,
+          "role": "project"
+        }
+      ],
+      "expect": {
+        "action": "send",
+        "version": 2,
+        "refs": [
+          {
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "required": false
+          }
+        ],
+        "omitted": [
+          {
+            "itemId": "rank-auth:docs/auth-policies.md#긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목긴-제목",
+            "reason": "item-id-format"
+          }
+        ],
+        "digest": "sha256:51970d26403754e17c3b381b89c869df5823d012da362df84cccb21749294acc"
+      }
+    },
+    {
+      "id": "all-optional-dropped",
+      "note": "보낼 선택 참조가 남지 않으면 knowledge 없이 보낸다.",
+      "knowledge": {
+        "schemaVersion": 1,
+        "mode": "enabled",
+        "refs": {
+          "supported": true,
+          "accepted": true,
+          "max": 20,
+          "versions": [
+            1,
+            2
+          ],
+          "supportedVersions": [
+            1,
+            2
+          ],
+          "maxBytes": 32768,
+          "requiredGate": true,
+          "requiredDefault": true,
+          "scope": "registered-docs"
+        },
+        "gate": {
+          "resume": "knowledge-blocked",
+          "actions": [
+            "knowledge-reverify",
+            "knowledge-replan"
+          ],
+          "causes": [
+            "unverified",
+            "hash-mismatch",
+            "identity-mismatch",
+            "expired",
+            "source-changed",
+            "source-deleted",
+            "scope",
+            "adapter"
+          ],
+          "ttlSeconds": 86400,
+          "command": {
+            "type": "knowledge",
+            "actions": [
+              "verify",
+              "replace"
+            ]
+          }
+        }
+      },
+      "senderVersions": [
+        1,
+        2
+      ],
+      "refs": [
+        {
+          "use": "billing-item",
+          "required": false,
+          "role": "link"
+        }
+      ],
+      "expect": {
+        "action": "omit",
+        "reason": "no-sendable-refs",
+        "omitted": [
+          {
+            "itemId": "rank-billing:docs/billing-architecture.md#정산-배치-구성",
+            "reason": "receiver-scope"
+          }
+        ]
+      }
+    }
+  ],
+  "cases": [
+    {
+      "id": "v1-minimal",
+      "note": "required를 생략하면 true로 받는다.",
+      "receiverVersions": [
+        1
+      ],
+      "knowledge": {
+        "version": 1,
+        "refs": [
+          {
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "generation": 1,
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b"
+          }
+        ]
+      },
+      "expect": {
+        "accepted": true,
+        "refs": [
+          {
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "generation": 1,
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b",
+            "required": true
+          }
+        ],
+        "digest": "sha256:9d58da9f206729535b5e01a8be7c64a64712a6821a52f9e9c1de2a2527782603"
+      }
+    },
+    {
+      "id": "v1-explicit",
+      "note": "보내는 쪽은 required를 항상 적는다.",
+      "receiverVersions": [
+        1
+      ],
+      "knowledge": {
+        "version": 1,
+        "refs": [
+          {
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "generation": 1,
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b",
+            "required": true
+          },
+          {
+            "itemId": "rank-auth:docs/token-guide.md#토큰-수명-주기",
+            "generation": 1,
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemSha256": "c67da925da20982450e95eaa5c8fdd3a716807d6b77d6b6b822b9a4329ff7adf",
+            "required": false
+          }
+        ]
+      },
+      "expect": {
+        "accepted": true,
+        "refs": [
+          {
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "generation": 1,
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b",
+            "required": true
+          },
+          {
+            "itemId": "rank-auth:docs/token-guide.md#토큰-수명-주기",
+            "generation": 1,
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemSha256": "c67da925da20982450e95eaa5c8fdd3a716807d6b77d6b6b822b9a4329ff7adf",
+            "required": false
+          }
+        ],
+        "digest": "sha256:da4938275541d7be0bd112c6882794b5a6bbc19a176f266ea1b12e1175530b25"
+      }
+    },
+    {
+      "id": "v1-master-block",
+      "note": "master-agent 217f37f의 handoffBlock 꼴은 수신 형식이 아니다.",
+      "receiverVersions": [
+        1
+      ],
+      "knowledge": {
+        "schema": "master-agent.knowledge-handoff",
+        "version": 1,
+        "bundleId": "kb:run-1",
+        "bundleHash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "generation": 1,
+        "publishedAt": "2026-01-01T00:00:00.000Z",
+        "items": [
+          {
+            "ref": "kitem:rank-auth:0123456789abcdef",
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001"
+          }
+        ]
+      },
+      "expect": {
+        "accepted": false,
+        "code": "invalid-request",
+        "reason": "knowledge-format"
+      }
+    },
+    {
+      "id": "v1-index-field",
+      "note": "형식 1 참조에 형식 2 필드를 섞지 않는다.",
+      "receiverVersions": [
+        1
+      ],
+      "knowledge": {
+        "version": 1,
+        "refs": [
+          {
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "generation": 1,
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b",
+            "indexId": "<index-id>"
+          }
+        ]
+      },
+      "expect": {
+        "accepted": false,
+        "code": "invalid-request",
+        "reason": "knowledge-format"
+      }
+    },
+    {
+      "id": "v1-sha256-commit",
+      "note": "형식 1의 commit은 40자리다. SHA-256 저장소의 참조는 형식 2로만 보낸다.",
+      "receiverVersions": [
+        1
+      ],
+      "knowledge": {
+        "version": 1,
+        "refs": [
+          {
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "generation": 1,
+            "commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b"
+          }
+        ]
+      },
+      "expect": {
+        "accepted": false,
+        "code": "invalid-request",
+        "reason": "knowledge-format"
+      }
+    },
+    {
+      "id": "v1-uppercase-hash",
+      "note": "해시는 소문자 16진이다.",
+      "receiverVersions": [
+        1
+      ],
+      "knowledge": {
+        "version": 1,
+        "refs": [
+          {
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "generation": 1,
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemSha256": "B0A0324FF7BC1261DADBCB464CF2D316BB34AFD3F39BE21A26C801EC6ECE066B"
+          }
+        ]
+      },
+      "expect": {
+        "accepted": false,
+        "code": "invalid-request",
+        "reason": "knowledge-format"
+      }
+    },
+    {
+      "id": "v1-bare-key",
+      "note": "itemId는 생산자 항목 ID 그대로다(':'와 '#' 포함). 항목 키만 보내지 않는다.",
+      "receiverVersions": [
+        1
+      ],
+      "knowledge": {
+        "version": 1,
+        "refs": [
+          {
+            "itemId": "AUTH-POL-001",
+            "generation": 1,
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b"
+          }
+        ]
+      },
+      "expect": {
+        "accepted": false,
+        "code": "invalid-request",
+        "reason": "knowledge-format"
+      }
+    },
+    {
+      "id": "v1-required-string",
+      "receiverVersions": [
+        1
+      ],
+      "knowledge": {
+        "version": 1,
+        "refs": [
+          {
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "generation": 1,
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b",
+            "required": "true"
+          }
+        ]
+      },
+      "expect": {
+        "accepted": false,
+        "code": "invalid-request",
+        "reason": "knowledge-format"
+      }
+    },
+    {
+      "id": "v1-duplicate",
+      "note": "형식 1은 itemId가 겹치면 거절한다.",
+      "receiverVersions": [
+        1
+      ],
+      "knowledge": {
+        "version": 1,
+        "refs": [
+          {
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "generation": 1,
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b"
+          },
+          {
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "generation": 1,
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b",
+            "required": false
+          }
+        ]
+      },
+      "expect": {
+        "accepted": false,
+        "code": "invalid-request",
+        "reason": "knowledge-duplicate"
+      }
+    },
+    {
+      "id": "v1-empty",
+      "receiverVersions": [
+        1
+      ],
+      "knowledge": {
+        "version": 1,
+        "refs": []
+      },
+      "expect": {
+        "accepted": false,
+        "code": "invalid-request",
+        "reason": "knowledge-limit"
+      }
+    },
+    {
+      "id": "v1-too-many",
+      "note": "참조는 1~20개다.",
+      "receiverVersions": [
+        1
+      ],
+      "knowledge": {
+        "version": 1,
+        "refs": [
+          {
+            "itemId": "rank-auth:docs/auth-policies.md#X-00",
+            "generation": 1,
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b"
+          },
+          {
+            "itemId": "rank-auth:docs/auth-policies.md#X-01",
+            "generation": 1,
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b"
+          },
+          {
+            "itemId": "rank-auth:docs/auth-policies.md#X-02",
+            "generation": 1,
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b"
+          },
+          {
+            "itemId": "rank-auth:docs/auth-policies.md#X-03",
+            "generation": 1,
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b"
+          },
+          {
+            "itemId": "rank-auth:docs/auth-policies.md#X-04",
+            "generation": 1,
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b"
+          },
+          {
+            "itemId": "rank-auth:docs/auth-policies.md#X-05",
+            "generation": 1,
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b"
+          },
+          {
+            "itemId": "rank-auth:docs/auth-policies.md#X-06",
+            "generation": 1,
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b"
+          },
+          {
+            "itemId": "rank-auth:docs/auth-policies.md#X-07",
+            "generation": 1,
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b"
+          },
+          {
+            "itemId": "rank-auth:docs/auth-policies.md#X-08",
+            "generation": 1,
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b"
+          },
+          {
+            "itemId": "rank-auth:docs/auth-policies.md#X-09",
+            "generation": 1,
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b"
+          },
+          {
+            "itemId": "rank-auth:docs/auth-policies.md#X-10",
+            "generation": 1,
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b"
+          },
+          {
+            "itemId": "rank-auth:docs/auth-policies.md#X-11",
+            "generation": 1,
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b"
+          },
+          {
+            "itemId": "rank-auth:docs/auth-policies.md#X-12",
+            "generation": 1,
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b"
+          },
+          {
+            "itemId": "rank-auth:docs/auth-policies.md#X-13",
+            "generation": 1,
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b"
+          },
+          {
+            "itemId": "rank-auth:docs/auth-policies.md#X-14",
+            "generation": 1,
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b"
+          },
+          {
+            "itemId": "rank-auth:docs/auth-policies.md#X-15",
+            "generation": 1,
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b"
+          },
+          {
+            "itemId": "rank-auth:docs/auth-policies.md#X-16",
+            "generation": 1,
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b"
+          },
+          {
+            "itemId": "rank-auth:docs/auth-policies.md#X-17",
+            "generation": 1,
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b"
+          },
+          {
+            "itemId": "rank-auth:docs/auth-policies.md#X-18",
+            "generation": 1,
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b"
+          },
+          {
+            "itemId": "rank-auth:docs/auth-policies.md#X-19",
+            "generation": 1,
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b"
+          },
+          {
+            "itemId": "rank-auth:docs/auth-policies.md#X-20",
+            "generation": 1,
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b"
+          }
+        ]
+      },
+      "expect": {
+        "accepted": false,
+        "code": "invalid-request",
+        "reason": "knowledge-limit"
+      }
+    },
+    {
+      "id": "v1-extra-top-key",
+      "receiverVersions": [
+        1
+      ],
+      "knowledge": {
+        "version": 1,
+        "refs": [
+          {
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "generation": 1,
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b"
+          }
+        ],
+        "bundleId": "kb:run-1"
+      },
+      "expect": {
+        "accepted": false,
+        "code": "invalid-request",
+        "reason": "knowledge-format"
+      }
+    },
+    {
+      "id": "unknown-version",
+      "receiverVersions": [
+        1,
+        2
+      ],
+      "knowledge": {
+        "version": 3,
+        "refs": [
+          {
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "generation": 1,
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b"
+          }
+        ]
+      },
+      "expect": {
+        "accepted": false,
+        "code": "invalid-request",
+        "reason": "knowledge-version"
+      }
+    },
+    {
+      "id": "v2-to-v1-receiver",
+      "note": "형식 2를 공지하지 않은 수신자(code-agent 3c5bbac 등)에는 보내지 않는다. 보내면 거절된다.",
+      "receiverVersions": [
+        1
+      ],
+      "knowledge": {
+        "version": 2,
+        "refs": [
+          {
+            "handle": "<handle>",
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "sourceId": "rank-auth",
+            "projectId": "rank-auth",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b",
+            "documentSha256": "5ea0512d02b1f18f741c056a930472c0e14f59025a30667ad4ed50f5881aa31a",
+            "blobSha": "03e76e5aeafca7a47c805163faf6df2857b1daa1",
+            "path": "docs/auth-policies.md",
+            "startLine": 9,
+            "endLine": 15,
+            "segmentId": null,
+            "segmentSha256": null,
+            "segmentStartLine": null,
+            "segmentEndLine": null,
+            "required": true
+          }
+        ]
+      },
+      "expect": {
+        "accepted": false,
+        "code": "invalid-request",
+        "reason": "knowledge-version"
+      }
+    },
+    {
+      "id": "v2-item-and-segment",
+      "note": "생산자 ref 17개 필드를 그대로 싣고 required를 더한다. 항목 ref의 분할 필드는 null이다.",
+      "receiverVersions": [
+        1,
+        2
+      ],
+      "knowledge": {
+        "version": 2,
+        "refs": [
+          {
+            "handle": "<handle>",
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "sourceId": "rank-auth",
+            "projectId": "rank-auth",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b",
+            "documentSha256": "5ea0512d02b1f18f741c056a930472c0e14f59025a30667ad4ed50f5881aa31a",
+            "blobSha": "03e76e5aeafca7a47c805163faf6df2857b1daa1",
+            "path": "docs/auth-policies.md",
+            "startLine": 9,
+            "endLine": 15,
+            "segmentId": null,
+            "segmentSha256": null,
+            "segmentStartLine": null,
+            "segmentEndLine": null,
+            "required": true
+          },
+          {
+            "handle": "<handle>",
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "sourceId": "rank-auth",
+            "projectId": "rank-auth",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemId": "rank-auth:docs/token-guide.md#토큰-수명-주기",
+            "itemSha256": "c67da925da20982450e95eaa5c8fdd3a716807d6b77d6b6b822b9a4329ff7adf",
+            "documentSha256": "8de07d682ccc4559e0a7442a1ff126ad86d2e6c66fff0329472e10787361207a",
+            "blobSha": "0bfab2d018b26273f1944ff0c182da9bb0f07d82",
+            "path": "docs/token-guide.md",
+            "startLine": 9,
+            "endLine": 39,
+            "segmentId": "rank-auth:docs/token-guide.md#토큰-수명-주기#2",
+            "segmentSha256": "aa0f504b980f83aa7a46fb69ae901c11b782f01f6b226d6f5f01f308816db2c9",
+            "segmentStartLine": 27,
+            "segmentEndLine": 39,
+            "required": false
+          }
+        ]
+      },
+      "expect": {
+        "accepted": true,
+        "refs": [
+          {
+            "handle": "<handle>",
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "sourceId": "rank-auth",
+            "projectId": "rank-auth",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b",
+            "documentSha256": "5ea0512d02b1f18f741c056a930472c0e14f59025a30667ad4ed50f5881aa31a",
+            "blobSha": "03e76e5aeafca7a47c805163faf6df2857b1daa1",
+            "path": "docs/auth-policies.md",
+            "startLine": 9,
+            "endLine": 15,
+            "required": true
+          },
+          {
+            "handle": "<handle>",
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "sourceId": "rank-auth",
+            "projectId": "rank-auth",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemId": "rank-auth:docs/token-guide.md#토큰-수명-주기",
+            "itemSha256": "c67da925da20982450e95eaa5c8fdd3a716807d6b77d6b6b822b9a4329ff7adf",
+            "documentSha256": "8de07d682ccc4559e0a7442a1ff126ad86d2e6c66fff0329472e10787361207a",
+            "blobSha": "0bfab2d018b26273f1944ff0c182da9bb0f07d82",
+            "path": "docs/token-guide.md",
+            "startLine": 9,
+            "endLine": 39,
+            "segmentId": "rank-auth:docs/token-guide.md#토큰-수명-주기#2",
+            "segmentSha256": "aa0f504b980f83aa7a46fb69ae901c11b782f01f6b226d6f5f01f308816db2c9",
+            "segmentStartLine": 27,
+            "segmentEndLine": 39,
+            "required": false
+          }
+        ]
+      },
+      "verification": {
+        "refs": [
+          {
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "segmentId": null,
+            "required": true,
+            "cause": "verified",
+            "mismatches": []
+          },
+          {
+            "itemId": "rank-auth:docs/token-guide.md#토큰-수명-주기",
+            "segmentId": "rank-auth:docs/token-guide.md#토큰-수명-주기#2",
+            "required": false,
+            "cause": "verified",
+            "mismatches": []
+          }
+        ],
+        "progress": "allowed",
+        "gate": {
+          "state": "verified"
+        }
+      }
+    },
+    {
+      "id": "v2-golden-digest",
+      "note": "indexId·handle을 글자 그대로 둔 형식 2 사례다. 생산자 DB 없이 소비자 파서와 인계 해시를 맞춘다. docs/integration.md 형식 2 예시와 같은 인계다.",
+      "receiverVersions": [
+        1,
+        2
+      ],
+      "knowledge": {
+        "version": 2,
+        "refs": [
+          {
+            "handle": "ak-69a35f3ff95562488d91",
+            "indexId": "17f75cc6617715a74285ff8903f05ce8",
+            "indexGeneration": 1,
+            "sourceId": "rank-auth",
+            "projectId": "rank-auth",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b",
+            "documentSha256": "5ea0512d02b1f18f741c056a930472c0e14f59025a30667ad4ed50f5881aa31a",
+            "blobSha": "03e76e5aeafca7a47c805163faf6df2857b1daa1",
+            "path": "docs/auth-policies.md",
+            "startLine": 9,
+            "endLine": 15,
+            "segmentId": null,
+            "segmentSha256": null,
+            "segmentStartLine": null,
+            "segmentEndLine": null,
+            "required": true
+          },
+          {
+            "handle": "ak-fb296c4d8241080dbf7e",
+            "indexId": "17f75cc6617715a74285ff8903f05ce8",
+            "indexGeneration": 1,
+            "sourceId": "rank-auth",
+            "projectId": "rank-auth",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemId": "rank-auth:docs/token-guide.md#토큰-수명-주기",
+            "itemSha256": "c67da925da20982450e95eaa5c8fdd3a716807d6b77d6b6b822b9a4329ff7adf",
+            "documentSha256": "8de07d682ccc4559e0a7442a1ff126ad86d2e6c66fff0329472e10787361207a",
+            "blobSha": "0bfab2d018b26273f1944ff0c182da9bb0f07d82",
+            "path": "docs/token-guide.md",
+            "startLine": 9,
+            "endLine": 39,
+            "segmentId": "rank-auth:docs/token-guide.md#토큰-수명-주기#2",
+            "segmentSha256": "aa0f504b980f83aa7a46fb69ae901c11b782f01f6b226d6f5f01f308816db2c9",
+            "segmentStartLine": 27,
+            "segmentEndLine": 39,
+            "required": false
+          }
+        ]
+      },
+      "expect": {
+        "accepted": true,
+        "refs": [
+          {
+            "indexId": "17f75cc6617715a74285ff8903f05ce8",
+            "indexGeneration": 1,
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "sourceId": "rank-auth",
+            "path": "docs/auth-policies.md",
+            "startLine": 9,
+            "endLine": 15,
+            "required": true,
+            "handle": "ak-69a35f3ff95562488d91",
+            "projectId": "rank-auth",
+            "documentSha256": "5ea0512d02b1f18f741c056a930472c0e14f59025a30667ad4ed50f5881aa31a",
+            "blobSha": "03e76e5aeafca7a47c805163faf6df2857b1daa1"
+          },
+          {
+            "indexId": "17f75cc6617715a74285ff8903f05ce8",
+            "indexGeneration": 1,
+            "itemId": "rank-auth:docs/token-guide.md#토큰-수명-주기",
+            "itemSha256": "c67da925da20982450e95eaa5c8fdd3a716807d6b77d6b6b822b9a4329ff7adf",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "sourceId": "rank-auth",
+            "path": "docs/token-guide.md",
+            "startLine": 9,
+            "endLine": 39,
+            "required": false,
+            "segmentId": "rank-auth:docs/token-guide.md#토큰-수명-주기#2",
+            "segmentSha256": "aa0f504b980f83aa7a46fb69ae901c11b782f01f6b226d6f5f01f308816db2c9",
+            "segmentStartLine": 27,
+            "segmentEndLine": 39,
+            "handle": "ak-fb296c4d8241080dbf7e",
+            "projectId": "rank-auth",
+            "documentSha256": "8de07d682ccc4559e0a7442a1ff126ad86d2e6c66fff0329472e10787361207a",
+            "blobSha": "0bfab2d018b26273f1944ff0c182da9bb0f07d82"
+          }
+        ],
+        "digest": "sha256:f3a6f95aa3e960338084cc3048c7e10b171f14c9ff6ef9c31c427f75ae96f083"
+      }
+    },
+    {
+      "id": "v2-minimal",
+      "note": "수신자가 반드시 요구하는 필드는 9개다. 보내는 쪽은 17개를 모두 보낸다.",
+      "receiverVersions": [
+        1,
+        2
+      ],
+      "knowledge": {
+        "version": 2,
+        "refs": [
+          {
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "sourceId": "rank-auth",
+            "path": "docs/auth-policies.md",
+            "startLine": 9,
+            "endLine": 15
+          }
+        ]
+      },
+      "expect": {
+        "accepted": true,
+        "refs": [
+          {
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "sourceId": "rank-auth",
+            "path": "docs/auth-policies.md",
+            "startLine": 9,
+            "endLine": 15,
+            "required": true
+          }
+        ]
+      },
+      "verification": {
+        "refs": [
+          {
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "segmentId": null,
+            "required": true,
+            "cause": "verified",
+            "mismatches": []
+          }
+        ],
+        "progress": "allowed",
+        "gate": {
+          "state": "verified"
+        }
+      }
+    },
+    {
+      "id": "v2-two-segments",
+      "note": "형식 2는 (itemId, segmentId)로 겹침을 본다. 같은 항목의 다른 조각은 함께 보낼 수 있다.",
+      "receiverVersions": [
+        1,
+        2
+      ],
+      "knowledge": {
+        "version": 2,
+        "refs": [
+          {
+            "handle": "<handle>",
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "sourceId": "rank-auth",
+            "projectId": "rank-auth",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemId": "rank-auth:docs/token-guide.md#토큰-수명-주기",
+            "itemSha256": "c67da925da20982450e95eaa5c8fdd3a716807d6b77d6b6b822b9a4329ff7adf",
+            "documentSha256": "8de07d682ccc4559e0a7442a1ff126ad86d2e6c66fff0329472e10787361207a",
+            "blobSha": "0bfab2d018b26273f1944ff0c182da9bb0f07d82",
+            "path": "docs/token-guide.md",
+            "startLine": 9,
+            "endLine": 39,
+            "segmentId": "rank-auth:docs/token-guide.md#토큰-수명-주기#1",
+            "segmentSha256": "a6157256a5dcf442fd86a7f33d43c458b566162b8a17f3840babbce852aa61c3",
+            "segmentStartLine": 9,
+            "segmentEndLine": 25,
+            "required": true
+          },
+          {
+            "handle": "<handle>",
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "sourceId": "rank-auth",
+            "projectId": "rank-auth",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemId": "rank-auth:docs/token-guide.md#토큰-수명-주기",
+            "itemSha256": "c67da925da20982450e95eaa5c8fdd3a716807d6b77d6b6b822b9a4329ff7adf",
+            "documentSha256": "8de07d682ccc4559e0a7442a1ff126ad86d2e6c66fff0329472e10787361207a",
+            "blobSha": "0bfab2d018b26273f1944ff0c182da9bb0f07d82",
+            "path": "docs/token-guide.md",
+            "startLine": 9,
+            "endLine": 39,
+            "segmentId": "rank-auth:docs/token-guide.md#토큰-수명-주기#2",
+            "segmentSha256": "aa0f504b980f83aa7a46fb69ae901c11b782f01f6b226d6f5f01f308816db2c9",
+            "segmentStartLine": 27,
+            "segmentEndLine": 39,
+            "required": true
+          }
+        ]
+      },
+      "expect": {
+        "accepted": true,
+        "refs": [
+          {
+            "handle": "<handle>",
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "sourceId": "rank-auth",
+            "projectId": "rank-auth",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemId": "rank-auth:docs/token-guide.md#토큰-수명-주기",
+            "itemSha256": "c67da925da20982450e95eaa5c8fdd3a716807d6b77d6b6b822b9a4329ff7adf",
+            "documentSha256": "8de07d682ccc4559e0a7442a1ff126ad86d2e6c66fff0329472e10787361207a",
+            "blobSha": "0bfab2d018b26273f1944ff0c182da9bb0f07d82",
+            "path": "docs/token-guide.md",
+            "startLine": 9,
+            "endLine": 39,
+            "segmentId": "rank-auth:docs/token-guide.md#토큰-수명-주기#1",
+            "segmentSha256": "a6157256a5dcf442fd86a7f33d43c458b566162b8a17f3840babbce852aa61c3",
+            "segmentStartLine": 9,
+            "segmentEndLine": 25,
+            "required": true
+          },
+          {
+            "handle": "<handle>",
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "sourceId": "rank-auth",
+            "projectId": "rank-auth",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemId": "rank-auth:docs/token-guide.md#토큰-수명-주기",
+            "itemSha256": "c67da925da20982450e95eaa5c8fdd3a716807d6b77d6b6b822b9a4329ff7adf",
+            "documentSha256": "8de07d682ccc4559e0a7442a1ff126ad86d2e6c66fff0329472e10787361207a",
+            "blobSha": "0bfab2d018b26273f1944ff0c182da9bb0f07d82",
+            "path": "docs/token-guide.md",
+            "startLine": 9,
+            "endLine": 39,
+            "segmentId": "rank-auth:docs/token-guide.md#토큰-수명-주기#2",
+            "segmentSha256": "aa0f504b980f83aa7a46fb69ae901c11b782f01f6b226d6f5f01f308816db2c9",
+            "segmentStartLine": 27,
+            "segmentEndLine": 39,
+            "required": true
+          }
+        ]
+      },
+      "verification": {
+        "refs": [
+          {
+            "itemId": "rank-auth:docs/token-guide.md#토큰-수명-주기",
+            "segmentId": "rank-auth:docs/token-guide.md#토큰-수명-주기#1",
+            "required": true,
+            "cause": "verified",
+            "mismatches": []
+          },
+          {
+            "itemId": "rank-auth:docs/token-guide.md#토큰-수명-주기",
+            "segmentId": "rank-auth:docs/token-guide.md#토큰-수명-주기#2",
+            "required": true,
+            "cause": "verified",
+            "mismatches": []
+          }
+        ],
+        "progress": "allowed",
+        "gate": {
+          "state": "verified"
+        }
+      }
+    },
+    {
+      "id": "v2-duplicate",
+      "receiverVersions": [
+        1,
+        2
+      ],
+      "knowledge": {
+        "version": 2,
+        "refs": [
+          {
+            "handle": "<handle>",
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "sourceId": "rank-auth",
+            "projectId": "rank-auth",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b",
+            "documentSha256": "5ea0512d02b1f18f741c056a930472c0e14f59025a30667ad4ed50f5881aa31a",
+            "blobSha": "03e76e5aeafca7a47c805163faf6df2857b1daa1",
+            "path": "docs/auth-policies.md",
+            "startLine": 9,
+            "endLine": 15,
+            "segmentId": null,
+            "segmentSha256": null,
+            "segmentStartLine": null,
+            "segmentEndLine": null,
+            "required": true
+          },
+          {
+            "handle": "<handle>",
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "sourceId": "rank-auth",
+            "projectId": "rank-auth",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b",
+            "documentSha256": "5ea0512d02b1f18f741c056a930472c0e14f59025a30667ad4ed50f5881aa31a",
+            "blobSha": "03e76e5aeafca7a47c805163faf6df2857b1daa1",
+            "path": "docs/auth-policies.md",
+            "startLine": 9,
+            "endLine": 15,
+            "segmentId": null,
+            "segmentSha256": null,
+            "segmentStartLine": null,
+            "segmentEndLine": null,
+            "required": false
+          }
+        ]
+      },
+      "expect": {
+        "accepted": false,
+        "code": "invalid-request",
+        "reason": "knowledge-duplicate"
+      }
+    },
+    {
+      "id": "v2-null-index-id",
+      "note": "형식 2의 indexId는 32자리 소문자 16진이고 null이 아니다.",
+      "receiverVersions": [
+        1,
+        2
+      ],
+      "knowledge": {
+        "version": 2,
+        "refs": [
+          {
+            "handle": "<handle>",
+            "indexId": null,
+            "indexGeneration": 1,
+            "sourceId": "rank-auth",
+            "projectId": "rank-auth",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b",
+            "documentSha256": "5ea0512d02b1f18f741c056a930472c0e14f59025a30667ad4ed50f5881aa31a",
+            "blobSha": "03e76e5aeafca7a47c805163faf6df2857b1daa1",
+            "path": "docs/auth-policies.md",
+            "startLine": 9,
+            "endLine": 15,
+            "segmentId": null,
+            "segmentSha256": null,
+            "segmentStartLine": null,
+            "segmentEndLine": null,
+            "required": true
+          }
+        ]
+      },
+      "expect": {
+        "accepted": false,
+        "code": "invalid-request",
+        "reason": "knowledge-format"
+      }
+    },
+    {
+      "id": "v2-unknown-field",
+      "note": "발췌·상태 같은 검색 결과 필드는 인계에 싣지 않는다.",
+      "receiverVersions": [
+        1,
+        2
+      ],
+      "knowledge": {
+        "version": 2,
+        "refs": [
+          {
+            "handle": "<handle>",
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "sourceId": "rank-auth",
+            "projectId": "rank-auth",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b",
+            "documentSha256": "5ea0512d02b1f18f741c056a930472c0e14f59025a30667ad4ed50f5881aa31a",
+            "blobSha": "03e76e5aeafca7a47c805163faf6df2857b1daa1",
+            "path": "docs/auth-policies.md",
+            "startLine": 9,
+            "endLine": 15,
+            "segmentId": null,
+            "segmentSha256": null,
+            "segmentStartLine": null,
+            "segmentEndLine": null,
+            "required": true,
+            "excerpt": "..."
+          }
+        ]
+      },
+      "expect": {
+        "accepted": false,
+        "code": "invalid-request",
+        "reason": "knowledge-format"
+      }
+    },
+    {
+      "id": "v2-partial-segment",
+      "note": "분할 필드는 넷을 함께 보낸다.",
+      "receiverVersions": [
+        1,
+        2
+      ],
+      "knowledge": {
+        "version": 2,
+        "refs": [
+          {
+            "handle": "<handle>",
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "sourceId": "rank-auth",
+            "projectId": "rank-auth",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemId": "rank-auth:docs/token-guide.md#토큰-수명-주기",
+            "itemSha256": "c67da925da20982450e95eaa5c8fdd3a716807d6b77d6b6b822b9a4329ff7adf",
+            "documentSha256": "8de07d682ccc4559e0a7442a1ff126ad86d2e6c66fff0329472e10787361207a",
+            "blobSha": "0bfab2d018b26273f1944ff0c182da9bb0f07d82",
+            "path": "docs/token-guide.md",
+            "startLine": 9,
+            "endLine": 39,
+            "segmentId": "rank-auth:docs/token-guide.md#토큰-수명-주기#2",
+            "segmentSha256": null,
+            "segmentStartLine": 27,
+            "segmentEndLine": 39,
+            "required": true
+          }
+        ]
+      },
+      "expect": {
+        "accepted": false,
+        "code": "invalid-request",
+        "reason": "knowledge-format"
+      }
+    },
+    {
+      "id": "v2-path-mismatch",
+      "note": "itemId는 <sourceId>:<path>#로 시작한다.",
+      "receiverVersions": [
+        1,
+        2
+      ],
+      "knowledge": {
+        "version": 2,
+        "refs": [
+          {
+            "handle": "<handle>",
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "sourceId": "rank-auth",
+            "projectId": "rank-auth",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b",
+            "documentSha256": "5ea0512d02b1f18f741c056a930472c0e14f59025a30667ad4ed50f5881aa31a",
+            "blobSha": "03e76e5aeafca7a47c805163faf6df2857b1daa1",
+            "path": "docs/token-guide.md",
+            "startLine": 9,
+            "endLine": 15,
+            "segmentId": null,
+            "segmentSha256": null,
+            "segmentStartLine": null,
+            "segmentEndLine": null,
+            "required": true
+          }
+        ]
+      },
+      "expect": {
+        "accepted": false,
+        "code": "invalid-request",
+        "reason": "knowledge-format"
+      }
+    },
+    {
+      "id": "v2-segment-outside",
+      "note": "조각 줄 범위는 항목 범위 안이다.",
+      "receiverVersions": [
+        1,
+        2
+      ],
+      "knowledge": {
+        "version": 2,
+        "refs": [
+          {
+            "handle": "<handle>",
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "sourceId": "rank-auth",
+            "projectId": "rank-auth",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemId": "rank-auth:docs/token-guide.md#토큰-수명-주기",
+            "itemSha256": "c67da925da20982450e95eaa5c8fdd3a716807d6b77d6b6b822b9a4329ff7adf",
+            "documentSha256": "8de07d682ccc4559e0a7442a1ff126ad86d2e6c66fff0329472e10787361207a",
+            "blobSha": "0bfab2d018b26273f1944ff0c182da9bb0f07d82",
+            "path": "docs/token-guide.md",
+            "startLine": 9,
+            "endLine": 39,
+            "segmentId": "rank-auth:docs/token-guide.md#토큰-수명-주기#2",
+            "segmentSha256": "aa0f504b980f83aa7a46fb69ae901c11b782f01f6b226d6f5f01f308816db2c9",
+            "segmentStartLine": 27,
+            "segmentEndLine": 40,
+            "required": true
+          }
+        ]
+      },
+      "expect": {
+        "accepted": false,
+        "code": "invalid-request",
+        "reason": "knowledge-format"
+      }
+    },
+    {
+      "id": "v2-too-large",
+      "note": "참조가 20개 이하여도 정규 JSON이 32768바이트를 넘으면 거절한다.",
+      "receiverVersions": [
+        1,
+        2
+      ],
+      "knowledge": {
+        "version": 2,
+        "refs": [
+          {
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "itemId": "rank-auth:docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md#k00",
+            "itemSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "sourceId": "rank-auth",
+            "path": "docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md",
+            "startLine": 1,
+            "endLine": 2,
+            "segmentId": "rank-auth:docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md#k00#1",
+            "segmentSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            "segmentStartLine": 1,
+            "segmentEndLine": 2,
+            "required": false
+          },
+          {
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "itemId": "rank-auth:docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md#k01",
+            "itemSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "sourceId": "rank-auth",
+            "path": "docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md",
+            "startLine": 1,
+            "endLine": 2,
+            "segmentId": "rank-auth:docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md#k01#1",
+            "segmentSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            "segmentStartLine": 1,
+            "segmentEndLine": 2,
+            "required": false
+          },
+          {
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "itemId": "rank-auth:docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md#k02",
+            "itemSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "sourceId": "rank-auth",
+            "path": "docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md",
+            "startLine": 1,
+            "endLine": 2,
+            "segmentId": "rank-auth:docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md#k02#1",
+            "segmentSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            "segmentStartLine": 1,
+            "segmentEndLine": 2,
+            "required": false
+          },
+          {
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "itemId": "rank-auth:docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md#k03",
+            "itemSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "sourceId": "rank-auth",
+            "path": "docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md",
+            "startLine": 1,
+            "endLine": 2,
+            "segmentId": "rank-auth:docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md#k03#1",
+            "segmentSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            "segmentStartLine": 1,
+            "segmentEndLine": 2,
+            "required": false
+          },
+          {
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "itemId": "rank-auth:docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md#k04",
+            "itemSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "sourceId": "rank-auth",
+            "path": "docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md",
+            "startLine": 1,
+            "endLine": 2,
+            "segmentId": "rank-auth:docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md#k04#1",
+            "segmentSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            "segmentStartLine": 1,
+            "segmentEndLine": 2,
+            "required": false
+          },
+          {
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "itemId": "rank-auth:docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md#k05",
+            "itemSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "sourceId": "rank-auth",
+            "path": "docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md",
+            "startLine": 1,
+            "endLine": 2,
+            "segmentId": "rank-auth:docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md#k05#1",
+            "segmentSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            "segmentStartLine": 1,
+            "segmentEndLine": 2,
+            "required": false
+          },
+          {
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "itemId": "rank-auth:docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md#k06",
+            "itemSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "sourceId": "rank-auth",
+            "path": "docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md",
+            "startLine": 1,
+            "endLine": 2,
+            "segmentId": "rank-auth:docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md#k06#1",
+            "segmentSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            "segmentStartLine": 1,
+            "segmentEndLine": 2,
+            "required": false
+          },
+          {
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "itemId": "rank-auth:docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md#k07",
+            "itemSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "sourceId": "rank-auth",
+            "path": "docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md",
+            "startLine": 1,
+            "endLine": 2,
+            "segmentId": "rank-auth:docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md#k07#1",
+            "segmentSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            "segmentStartLine": 1,
+            "segmentEndLine": 2,
+            "required": false
+          },
+          {
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "itemId": "rank-auth:docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md#k08",
+            "itemSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "sourceId": "rank-auth",
+            "path": "docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md",
+            "startLine": 1,
+            "endLine": 2,
+            "segmentId": "rank-auth:docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md#k08#1",
+            "segmentSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            "segmentStartLine": 1,
+            "segmentEndLine": 2,
+            "required": false
+          },
+          {
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "itemId": "rank-auth:docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md#k09",
+            "itemSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "sourceId": "rank-auth",
+            "path": "docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md",
+            "startLine": 1,
+            "endLine": 2,
+            "segmentId": "rank-auth:docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md#k09#1",
+            "segmentSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            "segmentStartLine": 1,
+            "segmentEndLine": 2,
+            "required": false
+          },
+          {
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "itemId": "rank-auth:docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md#k10",
+            "itemSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "sourceId": "rank-auth",
+            "path": "docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md",
+            "startLine": 1,
+            "endLine": 2,
+            "segmentId": "rank-auth:docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md#k10#1",
+            "segmentSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            "segmentStartLine": 1,
+            "segmentEndLine": 2,
+            "required": false
+          },
+          {
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "itemId": "rank-auth:docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md#k11",
+            "itemSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "sourceId": "rank-auth",
+            "path": "docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md",
+            "startLine": 1,
+            "endLine": 2,
+            "segmentId": "rank-auth:docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md#k11#1",
+            "segmentSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            "segmentStartLine": 1,
+            "segmentEndLine": 2,
+            "required": false
+          },
+          {
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "itemId": "rank-auth:docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md#k12",
+            "itemSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "sourceId": "rank-auth",
+            "path": "docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md",
+            "startLine": 1,
+            "endLine": 2,
+            "segmentId": "rank-auth:docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md#k12#1",
+            "segmentSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            "segmentStartLine": 1,
+            "segmentEndLine": 2,
+            "required": false
+          },
+          {
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "itemId": "rank-auth:docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md#k13",
+            "itemSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "sourceId": "rank-auth",
+            "path": "docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md",
+            "startLine": 1,
+            "endLine": 2,
+            "segmentId": "rank-auth:docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md#k13#1",
+            "segmentSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            "segmentStartLine": 1,
+            "segmentEndLine": 2,
+            "required": false
+          },
+          {
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "itemId": "rank-auth:docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md#k14",
+            "itemSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "sourceId": "rank-auth",
+            "path": "docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md",
+            "startLine": 1,
+            "endLine": 2,
+            "segmentId": "rank-auth:docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md#k14#1",
+            "segmentSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            "segmentStartLine": 1,
+            "segmentEndLine": 2,
+            "required": false
+          },
+          {
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "itemId": "rank-auth:docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md#k15",
+            "itemSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "sourceId": "rank-auth",
+            "path": "docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md",
+            "startLine": 1,
+            "endLine": 2,
+            "segmentId": "rank-auth:docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md#k15#1",
+            "segmentSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            "segmentStartLine": 1,
+            "segmentEndLine": 2,
+            "required": false
+          },
+          {
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "itemId": "rank-auth:docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md#k16",
+            "itemSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "sourceId": "rank-auth",
+            "path": "docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md",
+            "startLine": 1,
+            "endLine": 2,
+            "segmentId": "rank-auth:docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md#k16#1",
+            "segmentSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            "segmentStartLine": 1,
+            "segmentEndLine": 2,
+            "required": false
+          },
+          {
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "itemId": "rank-auth:docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md#k17",
+            "itemSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "sourceId": "rank-auth",
+            "path": "docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md",
+            "startLine": 1,
+            "endLine": 2,
+            "segmentId": "rank-auth:docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md#k17#1",
+            "segmentSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            "segmentStartLine": 1,
+            "segmentEndLine": 2,
+            "required": false
+          },
+          {
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "itemId": "rank-auth:docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md#k18",
+            "itemSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "sourceId": "rank-auth",
+            "path": "docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md",
+            "startLine": 1,
+            "endLine": 2,
+            "segmentId": "rank-auth:docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md#k18#1",
+            "segmentSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            "segmentStartLine": 1,
+            "segmentEndLine": 2,
+            "required": false
+          },
+          {
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "itemId": "rank-auth:docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md#k19",
+            "itemSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "sourceId": "rank-auth",
+            "path": "docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md",
+            "startLine": 1,
+            "endLine": 2,
+            "segmentId": "rank-auth:docs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md#k19#1",
+            "segmentSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            "segmentStartLine": 1,
+            "segmentEndLine": 2,
+            "required": false
+          }
+        ]
+      },
+      "expect": {
+        "accepted": false,
+        "code": "invalid-request",
+        "reason": "knowledge-too-large"
+      }
+    },
+    {
+      "id": "v2-tampered-hash",
+      "note": "형식 검사는 통과하고 진행 전 검증에서 막힌다. handle도 변조한 값으로 다시 계산했으므로 handle로는 변조를 알 수 없다.",
+      "receiverVersions": [
+        1,
+        2
+      ],
+      "knowledge": {
+        "version": 2,
+        "refs": [
+          {
+            "handle": "<handle>",
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "sourceId": "rank-auth",
+            "projectId": "rank-auth",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "itemSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            "documentSha256": "5ea0512d02b1f18f741c056a930472c0e14f59025a30667ad4ed50f5881aa31a",
+            "blobSha": "03e76e5aeafca7a47c805163faf6df2857b1daa1",
+            "path": "docs/auth-policies.md",
+            "startLine": 9,
+            "endLine": 15,
+            "segmentId": null,
+            "segmentSha256": null,
+            "segmentStartLine": null,
+            "segmentEndLine": null,
+            "required": true
+          }
+        ]
+      },
+      "expect": {
+        "accepted": true,
+        "refs": [
+          {
+            "handle": "<handle>",
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "sourceId": "rank-auth",
+            "projectId": "rank-auth",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "itemSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            "documentSha256": "5ea0512d02b1f18f741c056a930472c0e14f59025a30667ad4ed50f5881aa31a",
+            "blobSha": "03e76e5aeafca7a47c805163faf6df2857b1daa1",
+            "path": "docs/auth-policies.md",
+            "startLine": 9,
+            "endLine": 15,
+            "required": true
+          }
+        ]
+      },
+      "verification": {
+        "refs": [
+          {
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "segmentId": null,
+            "required": true,
+            "reason": "hash-mismatch",
+            "cause": "hash-mismatch",
+            "recovery": "replan",
+            "mismatches": [
+              "itemSha256"
+            ]
+          }
+        ],
+        "progress": "blocked",
+        "gate": {
+          "state": "blocked",
+          "action": "knowledge-replan"
+        }
+      }
+    },
+    {
+      "id": "v2-commit-changed",
+      "receiverVersions": [
+        1,
+        2
+      ],
+      "knowledge": {
+        "version": 2,
+        "refs": [
+          {
+            "handle": "<handle>",
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "sourceId": "rank-auth",
+            "projectId": "rank-auth",
+            "commit": "1111111111111111111111111111111111111111",
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b",
+            "documentSha256": "5ea0512d02b1f18f741c056a930472c0e14f59025a30667ad4ed50f5881aa31a",
+            "blobSha": "03e76e5aeafca7a47c805163faf6df2857b1daa1",
+            "path": "docs/auth-policies.md",
+            "startLine": 9,
+            "endLine": 15,
+            "segmentId": null,
+            "segmentSha256": null,
+            "segmentStartLine": null,
+            "segmentEndLine": null,
+            "required": true
+          }
+        ]
+      },
+      "expect": {
+        "accepted": true,
+        "refs": [
+          {
+            "handle": "<handle>",
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "sourceId": "rank-auth",
+            "projectId": "rank-auth",
+            "commit": "1111111111111111111111111111111111111111",
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b",
+            "documentSha256": "5ea0512d02b1f18f741c056a930472c0e14f59025a30667ad4ed50f5881aa31a",
+            "blobSha": "03e76e5aeafca7a47c805163faf6df2857b1daa1",
+            "path": "docs/auth-policies.md",
+            "startLine": 9,
+            "endLine": 15,
+            "required": true
+          }
+        ]
+      },
+      "verification": {
+        "refs": [
+          {
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "segmentId": null,
+            "required": true,
+            "reason": "commit-mismatch",
+            "cause": "identity-mismatch",
+            "recovery": "replan",
+            "mismatches": [
+              "commit"
+            ]
+          }
+        ],
+        "progress": "blocked",
+        "gate": {
+          "state": "blocked",
+          "action": "knowledge-replan"
+        }
+      }
+    },
+    {
+      "id": "v2-other-index",
+      "note": "같은 원본을 따로 색인한 DB는 세대 번호와 해시가 같아도 다른 근거로 본다.",
+      "receiverVersions": [
+        1,
+        2
+      ],
+      "knowledge": {
+        "version": 2,
+        "refs": [
+          {
+            "handle": "<handle>",
+            "indexId": "<index-id:other>",
+            "indexGeneration": 1,
+            "sourceId": "rank-auth",
+            "projectId": "rank-auth",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b",
+            "documentSha256": "5ea0512d02b1f18f741c056a930472c0e14f59025a30667ad4ed50f5881aa31a",
+            "blobSha": "03e76e5aeafca7a47c805163faf6df2857b1daa1",
+            "path": "docs/auth-policies.md",
+            "startLine": 9,
+            "endLine": 15,
+            "segmentId": null,
+            "segmentSha256": null,
+            "segmentStartLine": null,
+            "segmentEndLine": null,
+            "required": true
+          }
+        ]
+      },
+      "expect": {
+        "accepted": true,
+        "refs": [
+          {
+            "handle": "<handle>",
+            "indexId": "<index-id:other>",
+            "indexGeneration": 1,
+            "sourceId": "rank-auth",
+            "projectId": "rank-auth",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b",
+            "documentSha256": "5ea0512d02b1f18f741c056a930472c0e14f59025a30667ad4ed50f5881aa31a",
+            "blobSha": "03e76e5aeafca7a47c805163faf6df2857b1daa1",
+            "path": "docs/auth-policies.md",
+            "startLine": 9,
+            "endLine": 15,
+            "required": true
+          }
+        ]
+      },
+      "verification": {
+        "refs": [
+          {
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "segmentId": null,
+            "required": true,
+            "reason": "index-mismatch",
+            "cause": "identity-mismatch",
+            "recovery": "replan",
+            "mismatches": []
+          }
+        ],
+        "progress": "blocked",
+        "gate": {
+          "state": "blocked",
+          "action": "knowledge-replan"
+        }
+      }
+    },
+    {
+      "id": "v2-generation-gone",
+      "note": "세대가 지워졌으면 활성 세대의 같은 항목으로 대신하지 않는다.",
+      "receiverVersions": [
+        1,
+        2
+      ],
+      "knowledge": {
+        "version": 2,
+        "refs": [
+          {
+            "handle": "<handle>",
+            "indexId": "<index-id>",
+            "indexGeneration": 99,
+            "sourceId": "rank-auth",
+            "projectId": "rank-auth",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b",
+            "documentSha256": "5ea0512d02b1f18f741c056a930472c0e14f59025a30667ad4ed50f5881aa31a",
+            "blobSha": "03e76e5aeafca7a47c805163faf6df2857b1daa1",
+            "path": "docs/auth-policies.md",
+            "startLine": 9,
+            "endLine": 15,
+            "segmentId": null,
+            "segmentSha256": null,
+            "segmentStartLine": null,
+            "segmentEndLine": null,
+            "required": true
+          }
+        ]
+      },
+      "expect": {
+        "accepted": true,
+        "refs": [
+          {
+            "handle": "<handle>",
+            "indexId": "<index-id>",
+            "indexGeneration": 99,
+            "sourceId": "rank-auth",
+            "projectId": "rank-auth",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b",
+            "documentSha256": "5ea0512d02b1f18f741c056a930472c0e14f59025a30667ad4ed50f5881aa31a",
+            "blobSha": "03e76e5aeafca7a47c805163faf6df2857b1daa1",
+            "path": "docs/auth-policies.md",
+            "startLine": 9,
+            "endLine": 15,
+            "required": true
+          }
+        ]
+      },
+      "verification": {
+        "refs": [
+          {
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "segmentId": null,
+            "required": true,
+            "reason": "generation-expired",
+            "cause": "expired",
+            "recovery": "replan",
+            "mismatches": []
+          }
+        ],
+        "progress": "blocked",
+        "gate": {
+          "state": "blocked",
+          "action": "knowledge-replan"
+        }
+      }
+    },
+    {
+      "id": "v2-out-of-scope",
+      "note": "수신자는 자기 범위(rank-auth)로만 확인한다. 범위 밖 항목은 없는 항목과 같다.",
+      "receiverVersions": [
+        1,
+        2
+      ],
+      "knowledge": {
+        "version": 2,
+        "refs": [
+          {
+            "handle": "<handle>",
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "sourceId": "rank-billing",
+            "projectId": "rank-billing",
+            "commit": "a8c8055ef51f40a7f1962139014aab58b6c0a0e1",
+            "itemId": "rank-billing:docs/billing-architecture.md#정산-배치-구성",
+            "itemSha256": "b8a203f6bad92fb801b1fe6a690a3c89144ef8adb2fe489144d5fc32044b5f4a",
+            "documentSha256": "5a8aa7b9115dd41ae683218653b1732798359d3d27fca9e184b7022bb78588ac",
+            "blobSha": "c01522cdcc704eba9ec3853aad2eea68b7872e1a",
+            "path": "docs/billing-architecture.md",
+            "startLine": 13,
+            "endLine": 52,
+            "segmentId": null,
+            "segmentSha256": null,
+            "segmentStartLine": null,
+            "segmentEndLine": null,
+            "required": true
+          }
+        ]
+      },
+      "expect": {
+        "accepted": true,
+        "refs": [
+          {
+            "handle": "<handle>",
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "sourceId": "rank-billing",
+            "projectId": "rank-billing",
+            "commit": "a8c8055ef51f40a7f1962139014aab58b6c0a0e1",
+            "itemId": "rank-billing:docs/billing-architecture.md#정산-배치-구성",
+            "itemSha256": "b8a203f6bad92fb801b1fe6a690a3c89144ef8adb2fe489144d5fc32044b5f4a",
+            "documentSha256": "5a8aa7b9115dd41ae683218653b1732798359d3d27fca9e184b7022bb78588ac",
+            "blobSha": "c01522cdcc704eba9ec3853aad2eea68b7872e1a",
+            "path": "docs/billing-architecture.md",
+            "startLine": 13,
+            "endLine": 52,
+            "required": true
+          }
+        ]
+      },
+      "submit": {
+        "accepted": false,
+        "code": "invalid-request",
+        "reason": "knowledge-scope",
+        "refs": [
+          {
+            "itemId": "rank-billing:docs/billing-architecture.md#정산-배치-구성",
+            "reason": "not-in-docs"
+          }
+        ]
+      },
+      "verification": {
+        "refs": [
+          {
+            "itemId": "rank-billing:docs/billing-architecture.md#정산-배치-구성",
+            "segmentId": null,
+            "required": true,
+            "reason": "not-found",
+            "cause": "scope",
+            "recovery": "replan",
+            "mismatches": []
+          }
+        ],
+        "progress": "blocked",
+        "gate": {
+          "state": "blocked",
+          "action": "knowledge-replan"
+        }
+      }
+    },
+    {
+      "id": "v2-not-in-docs",
+      "note": "같은 프로젝트·원본이지만 받는 쪽이 등록하지 않은 문서(receiver.docs 밖)의 참조다. 선택 참조여도 접수 단계에서 인계 전체를 거절한다.",
+      "receiverVersions": [
+        1,
+        2
+      ],
+      "knowledge": {
+        "version": 2,
+        "refs": [
+          {
+            "handle": "<handle>",
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "sourceId": "rank-auth",
+            "projectId": "rank-auth",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b",
+            "documentSha256": "5ea0512d02b1f18f741c056a930472c0e14f59025a30667ad4ed50f5881aa31a",
+            "blobSha": "03e76e5aeafca7a47c805163faf6df2857b1daa1",
+            "path": "docs/auth-policies.md",
+            "startLine": 9,
+            "endLine": 15,
+            "segmentId": null,
+            "segmentSha256": null,
+            "segmentStartLine": null,
+            "segmentEndLine": null,
+            "required": true
+          },
+          {
+            "handle": "<handle>",
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "sourceId": "rank-auth",
+            "projectId": "rank-auth",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemId": "rank-auth:docs/api-catalog.md#API-AUTH-01",
+            "itemSha256": "55aec0d4aefb911435bafe414524328904d7b85e08f933ac94afee89779ffd36",
+            "documentSha256": "543450b0a23009a1561351753c0e72f491d76f0285384d98359c27df6b35710c",
+            "blobSha": "1678cd2e232e3f414e4e5bbb92409d280ff6c412",
+            "path": "docs/api-catalog.md",
+            "startLine": 9,
+            "endLine": 14,
+            "segmentId": null,
+            "segmentSha256": null,
+            "segmentStartLine": null,
+            "segmentEndLine": null,
+            "required": false
+          }
+        ]
+      },
+      "expect": {
+        "accepted": true,
+        "refs": [
+          {
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "sourceId": "rank-auth",
+            "path": "docs/auth-policies.md",
+            "startLine": 9,
+            "endLine": 15,
+            "required": true,
+            "handle": "<handle>",
+            "projectId": "rank-auth",
+            "documentSha256": "5ea0512d02b1f18f741c056a930472c0e14f59025a30667ad4ed50f5881aa31a",
+            "blobSha": "03e76e5aeafca7a47c805163faf6df2857b1daa1"
+          },
+          {
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "itemId": "rank-auth:docs/api-catalog.md#API-AUTH-01",
+            "itemSha256": "55aec0d4aefb911435bafe414524328904d7b85e08f933ac94afee89779ffd36",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "sourceId": "rank-auth",
+            "path": "docs/api-catalog.md",
+            "startLine": 9,
+            "endLine": 14,
+            "required": false,
+            "handle": "<handle>",
+            "projectId": "rank-auth",
+            "documentSha256": "543450b0a23009a1561351753c0e72f491d76f0285384d98359c27df6b35710c",
+            "blobSha": "1678cd2e232e3f414e4e5bbb92409d280ff6c412"
+          }
+        ]
+      },
+      "submit": {
+        "accepted": false,
+        "code": "invalid-request",
+        "reason": "knowledge-scope",
+        "refs": [
+          {
+            "itemId": "rank-auth:docs/api-catalog.md#API-AUTH-01",
+            "reason": "not-in-docs"
+          }
+        ]
+      }
+    },
+    {
+      "id": "v2-missing-item",
+      "note": "등록 문서 안이라 접수되지만 그 세대에 없는 항목이다. 범위 밖과 똑같이 not-found이고 범위를 넓혀 다시 찾지 않는다.",
+      "receiverVersions": [
+        1,
+        2
+      ],
+      "knowledge": {
+        "version": 2,
+        "refs": [
+          {
+            "handle": "<handle>",
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "sourceId": "rank-auth",
+            "projectId": "rank-auth",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-999",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b",
+            "documentSha256": "5ea0512d02b1f18f741c056a930472c0e14f59025a30667ad4ed50f5881aa31a",
+            "blobSha": "03e76e5aeafca7a47c805163faf6df2857b1daa1",
+            "path": "docs/auth-policies.md",
+            "startLine": 9,
+            "endLine": 15,
+            "segmentId": null,
+            "segmentSha256": null,
+            "segmentStartLine": null,
+            "segmentEndLine": null,
+            "required": true
+          }
+        ]
+      },
+      "expect": {
+        "accepted": true,
+        "refs": [
+          {
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-999",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "sourceId": "rank-auth",
+            "path": "docs/auth-policies.md",
+            "startLine": 9,
+            "endLine": 15,
+            "required": true,
+            "handle": "<handle>",
+            "projectId": "rank-auth",
+            "documentSha256": "5ea0512d02b1f18f741c056a930472c0e14f59025a30667ad4ed50f5881aa31a",
+            "blobSha": "03e76e5aeafca7a47c805163faf6df2857b1daa1"
+          }
+        ]
+      },
+      "verification": {
+        "refs": [
+          {
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-999",
+            "segmentId": null,
+            "required": true,
+            "reason": "not-found",
+            "cause": "scope",
+            "recovery": "replan",
+            "mismatches": []
+          }
+        ],
+        "progress": "blocked",
+        "gate": {
+          "state": "blocked",
+          "action": "knowledge-replan"
+        }
+      }
+    },
+    {
+      "id": "v2-optional-failure",
+      "note": "선택 참조의 실패는 진단으로 남기고 진행을 막지 않는다.",
+      "receiverVersions": [
+        1,
+        2
+      ],
+      "knowledge": {
+        "version": 2,
+        "refs": [
+          {
+            "handle": "<handle>",
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "sourceId": "rank-auth",
+            "projectId": "rank-auth",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemId": "rank-auth:docs/token-guide.md#토큰-수명-주기",
+            "itemSha256": "c67da925da20982450e95eaa5c8fdd3a716807d6b77d6b6b822b9a4329ff7adf",
+            "documentSha256": "8de07d682ccc4559e0a7442a1ff126ad86d2e6c66fff0329472e10787361207a",
+            "blobSha": "0bfab2d018b26273f1944ff0c182da9bb0f07d82",
+            "path": "docs/token-guide.md",
+            "startLine": 9,
+            "endLine": 39,
+            "segmentId": "rank-auth:docs/token-guide.md#토큰-수명-주기#2",
+            "segmentSha256": "aa0f504b980f83aa7a46fb69ae901c11b782f01f6b226d6f5f01f308816db2c9",
+            "segmentStartLine": 27,
+            "segmentEndLine": 39,
+            "required": true
+          },
+          {
+            "handle": "<handle>",
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "sourceId": "rank-auth",
+            "projectId": "rank-auth",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "itemSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            "documentSha256": "5ea0512d02b1f18f741c056a930472c0e14f59025a30667ad4ed50f5881aa31a",
+            "blobSha": "03e76e5aeafca7a47c805163faf6df2857b1daa1",
+            "path": "docs/auth-policies.md",
+            "startLine": 9,
+            "endLine": 15,
+            "segmentId": null,
+            "segmentSha256": null,
+            "segmentStartLine": null,
+            "segmentEndLine": null,
+            "required": false
+          }
+        ]
+      },
+      "expect": {
+        "accepted": true,
+        "refs": [
+          {
+            "handle": "<handle>",
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "sourceId": "rank-auth",
+            "projectId": "rank-auth",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemId": "rank-auth:docs/token-guide.md#토큰-수명-주기",
+            "itemSha256": "c67da925da20982450e95eaa5c8fdd3a716807d6b77d6b6b822b9a4329ff7adf",
+            "documentSha256": "8de07d682ccc4559e0a7442a1ff126ad86d2e6c66fff0329472e10787361207a",
+            "blobSha": "0bfab2d018b26273f1944ff0c182da9bb0f07d82",
+            "path": "docs/token-guide.md",
+            "startLine": 9,
+            "endLine": 39,
+            "segmentId": "rank-auth:docs/token-guide.md#토큰-수명-주기#2",
+            "segmentSha256": "aa0f504b980f83aa7a46fb69ae901c11b782f01f6b226d6f5f01f308816db2c9",
+            "segmentStartLine": 27,
+            "segmentEndLine": 39,
+            "required": true
+          },
+          {
+            "handle": "<handle>",
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "sourceId": "rank-auth",
+            "projectId": "rank-auth",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "itemSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            "documentSha256": "5ea0512d02b1f18f741c056a930472c0e14f59025a30667ad4ed50f5881aa31a",
+            "blobSha": "03e76e5aeafca7a47c805163faf6df2857b1daa1",
+            "path": "docs/auth-policies.md",
+            "startLine": 9,
+            "endLine": 15,
+            "required": false
+          }
+        ]
+      },
+      "verification": {
+        "refs": [
+          {
+            "itemId": "rank-auth:docs/token-guide.md#토큰-수명-주기",
+            "segmentId": "rank-auth:docs/token-guide.md#토큰-수명-주기#2",
+            "required": true,
+            "cause": "verified",
+            "mismatches": []
+          },
+          {
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "segmentId": null,
+            "required": false,
+            "reason": "hash-mismatch",
+            "cause": "hash-mismatch",
+            "recovery": "replan",
+            "mismatches": [
+              "itemSha256"
+            ]
+          }
+        ],
+        "progress": "allowed",
+        "gate": {
+          "state": "verified"
+        }
+      }
+    }
+  ]
+}

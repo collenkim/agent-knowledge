@@ -1,0 +1,484 @@
+{
+  "schema": "agent-knowledge.contract-example",
+  "schemaVersion": 1,
+  "title": "결과 없음·보충만·예산 초과·호출 상한·범위 오류",
+  "fixture": {
+    "workspace": "evals/fixtures/ranking-workspace"
+  },
+  "notes": [
+    "docs/integration.md의 '결과와 실패의 구분'에 대응하는 정본 예제다.",
+    "결과 없음(종료 코드 3, status no-results)과 보충만(종료 코드 0, outcome supplementary-only)은 실패가 아니다. 선택 검색이면 근거 없이 진행할 수 있다.",
+    "budget.exceeded:true는 항목을 모두 빼도 응답이 maxResponseBytes를 넘었다는 뜻이다. 필수 지정 항목도 예산으로 빠질 수 있으므로 budget.omitted의 group을 본다."
+  ],
+  "steps": [
+    {
+      "id": "no-results",
+      "argv": [
+        "search",
+        "--request",
+        "-"
+      ],
+      "request": {
+        "responseVersion": 2,
+        "profile": "code",
+        "query": "없는단어입니다",
+        "scope": {
+          "projects": [
+            "rank-billing"
+          ]
+        }
+      },
+      "exitCode": 3,
+      "stdout": {
+        "schema": "agent-knowledge.search",
+        "schemaVersion": 2,
+        "ok": true,
+        "status": "no-results",
+        "retrieval": {
+          "outcome": "no-results",
+          "directCount": 0
+        },
+        "items": [],
+        "limitations": [
+          {
+            "code": "keyword-only"
+          },
+          {
+            "code": "worktree-not-indexed"
+          }
+        ],
+        "budget": {
+          "truncated": false
+        }
+      }
+    },
+    {
+      "id": "supplementary-only",
+      "note": "직접 일치가 없고 필수 지정 항목만 붙었다. 이 항목을 질의의 답으로 쓰지 않는다.",
+      "argv": [
+        "search",
+        "--request",
+        "-"
+      ],
+      "request": {
+        "responseVersion": 2,
+        "profile": "code",
+        "query": "무차별 대입 방어",
+        "scope": {
+          "projects": [
+            "rank-auth"
+          ]
+        }
+      },
+      "exitCode": 0,
+      "stdout": {
+        "schema": "agent-knowledge.search",
+        "schemaVersion": 2,
+        "status": "ok",
+        "retrieval": {
+          "outcome": "supplementary-only",
+          "directCount": 0
+        },
+        "items": [
+          {
+            "id": "rank-auth:docs/auth-policies.md#AUTH-POL-002",
+            "group": "mandatory",
+            "mandatory": true,
+            "knowledge": {
+              "status": "confirmed_policy",
+              "confirmed": true
+            }
+          }
+        ],
+        "limitations": [
+          {
+            "code": "keyword-only"
+          },
+          {
+            "code": "no-query-matches"
+          },
+          {
+            "code": "worktree-not-indexed"
+          }
+        ]
+      }
+    },
+    {
+      "id": "budget-exceeded",
+      "argv": [
+        "search",
+        "--request",
+        "-"
+      ],
+      "request": {
+        "responseVersion": 2,
+        "profile": "code",
+        "query": "로그인 토큰",
+        "scope": {
+          "projects": [
+            "rank-auth"
+          ]
+        },
+        "budget": {
+          "maxItems": 1,
+          "maxResponseBytes": 4096
+        }
+      },
+      "exitCode": 0,
+      "stdout": {
+        "schema": "agent-knowledge.search",
+        "schemaVersion": 2,
+        "status": "ok",
+        "retrieval": {
+          "outcome": "matched",
+          "counts": {
+            "mandatory": 1,
+            "dependencies": 0,
+            "direct": 7,
+            "linked": 0,
+            "directMatched": 7,
+            "supplementaryMatched": 1,
+            "kept": {
+              "mandatory": 0,
+              "dependencies": 0,
+              "direct": 0,
+              "linked": 0
+            }
+          }
+        },
+        "items": [],
+        "limitations": [
+          {
+            "code": "budget-exceeded"
+          },
+          {
+            "code": "budget-truncated"
+          },
+          {
+            "code": "direct-crowded-out"
+          },
+          {
+            "code": "keyword-only"
+          },
+          {
+            "code": "worktree-not-indexed"
+          }
+        ],
+        "budget": {
+          "limits": {
+            "maxItems": 1,
+            "maxExcerptChars": null,
+            "maxResponseBytes": 4096,
+            "priority": [
+              "mandatory",
+              "dependencies",
+              "direct",
+              "linked"
+            ]
+          },
+          "truncated": true,
+          "exceeded": true,
+          "omitted": [
+            {
+              "id": "rank-auth:docs/auth-policies.md#AUTH-POL-002",
+              "segmentId": null,
+              "group": "mandatory",
+              "directRank": null
+            },
+            {
+              "id": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+              "segmentId": null,
+              "group": "direct",
+              "directRank": 1
+            },
+            {
+              "id": "rank-auth:docs/api-catalog.md#API-AUTH-02",
+              "segmentId": null,
+              "group": "direct",
+              "directRank": 2
+            },
+            {
+              "id": "rank-auth:docs/token-guide.md#토큰-수명-주기",
+              "segmentId": null,
+              "group": "direct",
+              "directRank": 3
+            },
+            {
+              "id": "rank-auth:docs/token-guide.md#토큰-오류-응답",
+              "segmentId": null,
+              "group": "direct",
+              "directRank": 4
+            },
+            {
+              "id": "rank-auth:docs/api-catalog.md#API-AUTH-01",
+              "segmentId": null,
+              "group": "direct",
+              "directRank": 5
+            },
+            {
+              "id": "rank-auth:docs/token-guide.md#토큰-운영-안내",
+              "segmentId": null,
+              "group": "direct",
+              "directRank": 6
+            },
+            {
+              "id": "rank-auth:docs/api-catalog.md#API-AUTH-03",
+              "segmentId": null,
+              "group": "direct",
+              "directRank": 7
+            }
+          ],
+          "omittedCount": 8
+        }
+      }
+    },
+    {
+      "id": "too-many-queries",
+      "note": "생산자 상한은 capabilities.queryLimits.maxQueries(32)다. 기본 overflow는 error다.",
+      "argv": [
+        "search",
+        "--request",
+        "-"
+      ],
+      "request": {
+        "responseVersion": 2,
+        "profile": "code",
+        "scope": {
+          "projects": [
+            "rank-auth"
+          ]
+        },
+        "queries": [
+          "토큰 1",
+          "토큰 2",
+          "토큰 3",
+          "토큰 4",
+          "토큰 5",
+          "토큰 6",
+          "토큰 7",
+          "토큰 8",
+          "토큰 9",
+          "토큰 10",
+          "토큰 11",
+          "토큰 12",
+          "토큰 13",
+          "토큰 14",
+          "토큰 15",
+          "토큰 16",
+          "토큰 17",
+          "토큰 18",
+          "토큰 19",
+          "토큰 20",
+          "토큰 21",
+          "토큰 22",
+          "토큰 23",
+          "토큰 24",
+          "토큰 25",
+          "토큰 26",
+          "토큰 27",
+          "토큰 28",
+          "토큰 29",
+          "토큰 30",
+          "토큰 31",
+          "토큰 32",
+          "토큰 33"
+        ]
+      },
+      "exitCode": 2,
+      "stdout": {
+        "schema": "agent-knowledge.error",
+        "schemaVersion": 1,
+        "ok": false,
+        "status": "error",
+        "command": "search",
+        "error": {
+          "code": "invalid-request",
+          "message": "질의가 너무 많습니다",
+          "detail": {
+            "reason": "too-many-queries",
+            "count": 33,
+            "max": 32
+          }
+        }
+      }
+    },
+    {
+      "id": "queries-truncated",
+      "note": "overflow:truncate면 뒤쪽 질의를 버리고 limitations에 알린다.",
+      "argv": [
+        "search",
+        "--request",
+        "-"
+      ],
+      "request": {
+        "responseVersion": 2,
+        "profile": "code",
+        "scope": {
+          "projects": [
+            "rank-auth"
+          ]
+        },
+        "overflow": "truncate",
+        "queries": [
+          "토큰 1",
+          "토큰 2",
+          "토큰 3",
+          "토큰 4",
+          "토큰 5",
+          "토큰 6",
+          "토큰 7",
+          "토큰 8",
+          "토큰 9",
+          "토큰 10",
+          "토큰 11",
+          "토큰 12",
+          "토큰 13",
+          "토큰 14",
+          "토큰 15",
+          "토큰 16",
+          "토큰 17",
+          "토큰 18",
+          "토큰 19",
+          "토큰 20",
+          "토큰 21",
+          "토큰 22",
+          "토큰 23",
+          "토큰 24",
+          "토큰 25",
+          "토큰 26",
+          "토큰 27",
+          "토큰 28",
+          "토큰 29",
+          "토큰 30",
+          "토큰 31",
+          "토큰 32",
+          "토큰 33"
+        ]
+      },
+      "exitCode": 0,
+      "stdout": {
+        "schema": "agent-knowledge.search",
+        "schemaVersion": 2,
+        "status": "ok",
+        "limitations": [
+          {
+            "code": "keyword-only",
+            "message": "키워드 검색만 수행했습니다. 벡터 검색은 구현되지 않았습니다",
+            "detail": {}
+          },
+          {
+            "code": "queries-truncated",
+            "message": "질의 수가 상한을 넘어 뒤쪽 질의를 쓰지 않았습니다",
+            "detail": {
+              "droppedKeys": [
+                "q33"
+              ],
+              "max": 32
+            }
+          },
+          {
+            "code": "unconfirmed-results",
+            "message": "확정되지 않은 자료가 결과에 포함되어 있습니다",
+            "detail": {
+              "count": 6
+            }
+          },
+          {
+            "code": "unresolved-links",
+            "message": "대상을 찾지 못했거나 대상이 여럿인 연결이 있습니다",
+            "detail": {
+              "count": 2,
+              "targets": [
+                "src/auth/logout.ts",
+                "src/auth/password.ts"
+              ]
+            }
+          },
+          {
+            "code": "worktree-not-indexed",
+            "message": "선택한 커밋의 추적 문서만 색인합니다. 커밋되지 않은 변경은 반영되지 않습니다",
+            "detail": {}
+          }
+        ]
+      }
+    },
+    {
+      "id": "code-profile-two-projects",
+      "argv": [
+        "search",
+        "--request",
+        "-"
+      ],
+      "request": {
+        "responseVersion": 2,
+        "profile": "code",
+        "query": "토큰",
+        "scope": {
+          "projects": [
+            "rank-auth",
+            "rank-billing"
+          ]
+        }
+      },
+      "exitCode": 4,
+      "stdout": {
+        "schema": "agent-knowledge.error",
+        "schemaVersion": 1,
+        "ok": false,
+        "status": "error",
+        "command": "search",
+        "error": {
+          "code": "invalid-scope",
+          "message": "이 프로필은 프로젝트를 정확히 하나만 받습니다",
+          "detail": {
+            "reason": "single-project-required",
+            "count": 2
+          }
+        }
+      }
+    },
+    {
+      "id": "code-profile-link-kind",
+      "note": "code 프로필은 contract·dependency·api-catalog 연결만 받는다. 범위를 넓혀 다시 시도하지 않는다.",
+      "argv": [
+        "search",
+        "--request",
+        "-"
+      ],
+      "request": {
+        "responseVersion": 2,
+        "profile": "code",
+        "query": "토큰",
+        "scope": {
+          "projects": [
+            "rank-auth"
+          ],
+          "allowedLinks": [
+            {
+              "project": "rank-billing",
+              "kinds": [
+                "policy"
+              ]
+            }
+          ]
+        }
+      },
+      "exitCode": 4,
+      "stdout": {
+        "schema": "agent-knowledge.error",
+        "schemaVersion": 1,
+        "ok": false,
+        "status": "error",
+        "command": "search",
+        "error": {
+          "code": "invalid-scope",
+          "message": "이 프로필이 허용하지 않는 자료 종류입니다",
+          "detail": {
+            "reason": "link-kind-not-allowed",
+            "project": "rank-billing"
+          }
+        }
+      }
+    }
+  ]
+}

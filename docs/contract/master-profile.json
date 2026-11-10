@@ -1,0 +1,518 @@
+{
+  "schema": "agent-knowledge.contract-example",
+  "schemaVersion": 1,
+  "title": "master 프로필: 임대로 세대 고정, 프로젝트별 형식 2 검색, 임대 갱신·해제",
+  "fixture": {
+    "workspace": "evals/fixtures/ranking-workspace"
+  },
+  "notes": [
+    "docs/integration.md의 'master-agent 흐름'에 대응하는 정본 예제다. 보유자 이름 master-agent:<missionId>는 제안이며 생산자는 이름의 뜻을 해석하지 않는다.",
+    "임대를 먼저 얻고 그 세대와 indexId를 version에 넣어 exact로 검색한다. 이후 모든 호출이 같은 (indexId, generation)을 쓴다.",
+    "master의 전체 맥락 예산(항목 수·바이트)은 master가 나눠 쓴다. 생산자 budget은 호출 하나의 상한이다.",
+    "budget.maxExcerptChars는 응답 전체 발췌 글자 수의 합이다. 예산으로 빠진 항목은 truncated와 omitted로 드러난다.",
+    "digests는 실행마다 달라지는 indexId를 포함하므로 예제에서는 <digest>로 적는다. 같은 DB·같은 요청이면 값이 같다."
+  ],
+  "steps": [
+    {
+      "id": "lease-acquire",
+      "note": "--index-id로 다른 DB에 임대를 걸지 않게 한다. --generation을 생략하면 같은 쓰기 트랜잭션에서 읽은 활성 세대에 건다.",
+      "argv": [
+        "lease",
+        "acquire",
+        "--holder",
+        "master-agent:mission-0001",
+        "--ttl",
+        "7200",
+        "--index-id",
+        "<index-id>"
+      ],
+      "exitCode": 0,
+      "stdout": {
+        "schema": "agent-knowledge.lease",
+        "schemaVersion": 1,
+        "ok": true,
+        "status": "ok",
+        "action": "acquire",
+        "indexId": "<index-id>",
+        "lease": {
+          "leaseId": "<lease-id>",
+          "generation": 1,
+          "holder": "master-agent:mission-0001",
+          "acquiredAt": "<time>",
+          "renewedAt": "<time>",
+          "expiresAt": "<time>"
+        }
+      }
+    },
+    {
+      "id": "search-billing-with-link",
+      "argv": [
+        "search",
+        "--request",
+        "-"
+      ],
+      "request": {
+        "responseVersion": 2,
+        "profile": "master",
+        "queries": [
+          {
+            "key": "Q1",
+            "text": "로그인 API 세션"
+          },
+          {
+            "key": "Q2",
+            "text": "정산 배치"
+          }
+        ],
+        "scope": {
+          "projects": [
+            "rank-billing"
+          ],
+          "allowedLinks": [
+            {
+              "project": "rank-auth",
+              "kinds": [
+                "api-catalog"
+              ]
+            }
+          ]
+        },
+        "version": {
+          "generation": 1,
+          "indexId": "<index-id>",
+          "exact": true
+        },
+        "ranker": "legacy",
+        "budget": {
+          "maxItems": 6,
+          "maxExcerptChars": 1200,
+          "maxResponseBytes": 65536
+        },
+        "limit": 10
+      },
+      "exitCode": 0,
+      "stdout": {
+        "schema": "agent-knowledge.search",
+        "schemaVersion": 2,
+        "status": "ok",
+        "request": {
+          "ranker": "legacy",
+          "budget": {
+            "maxItems": 6,
+            "maxExcerptChars": 1200,
+            "maxResponseBytes": 65536
+          }
+        },
+        "appliedScope": {
+          "projects": [
+            "rank-billing"
+          ],
+          "allowedLinks": [
+            {
+              "project": "rank-auth",
+              "kinds": [
+                "api-catalog"
+              ],
+              "itemIds": null
+            }
+          ],
+          "kinds": null,
+          "statuses": [
+            "confirmed_policy",
+            "observed_behavior",
+            "verified_experience",
+            "unverified",
+            "conflicted"
+          ],
+          "documents": null
+        },
+        "index": {
+          "generation": 1,
+          "indexId": "<index-id>",
+          "scopeFingerprint": "9c98b3b9a2a408d47f8b0247815876d097961deefcdb65d7c24827894afe1315",
+          "activeGeneration": 1,
+          "selection": {
+            "by": "generation",
+            "exact": true
+          },
+          "sources": [
+            {
+              "sourceId": "rank-auth",
+              "projectId": "rank-auth",
+              "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+              "requestedRef": "HEAD",
+              "refOrigin": "config"
+            },
+            {
+              "sourceId": "rank-billing",
+              "projectId": "rank-billing",
+              "commit": "a8c8055ef51f40a7f1962139014aab58b6c0a0e1",
+              "requestedRef": "HEAD",
+              "refOrigin": "config"
+            }
+          ]
+        },
+        "retrieval": {
+          "outcome": "matched",
+          "ranker": {
+            "name": "legacy",
+            "version": "keyword-legacy-1"
+          },
+          "queryVersion": "query-2",
+          "configHash": "261914e09142754391befb64a835a91f3c94e41ec766e1c2337b0231ceebdf2c",
+          "counts": {
+            "mandatory": 0,
+            "dependencies": 0,
+            "direct": 7,
+            "linked": 0,
+            "directMatched": 7,
+            "supplementaryMatched": 0,
+            "kept": {
+              "mandatory": 0,
+              "dependencies": 0,
+              "direct": 4,
+              "linked": 0
+            }
+          },
+          "composition": {
+            "direct": {
+              "byProject": {
+                "rank-auth": 2,
+                "rank-billing": 2
+              },
+              "byKind": {
+                "api-catalog": 2,
+                "architecture": 2
+              }
+            },
+            "supplementary": {
+              "byProject": {},
+              "byKind": {}
+            }
+          }
+        },
+        "items": [
+          {
+            "id": "rank-auth:docs/api-catalog.md#API-AUTH-02",
+            "group": "direct",
+            "projectId": "rank-auth",
+            "kind": "api-catalog",
+            "knowledge": {
+              "status": "unverified",
+              "confirmed": false
+            },
+            "selection": {
+              "matchedQueries": [
+                "Q1"
+              ]
+            },
+            "ref": {
+              "handle": "<handle>",
+              "indexId": "<index-id>",
+              "indexGeneration": 1,
+              "itemSha256": "24aabe90f507b2f8b8e8b98f12387f46ed070e7c0d22d724031bd2734ae4a703"
+            }
+          },
+          {
+            "id": "rank-billing:docs/billing-architecture.md#정산-배치-구성",
+            "group": "direct",
+            "projectId": "rank-billing",
+            "kind": "architecture",
+            "knowledge": {
+              "status": "unverified",
+              "confirmed": false
+            },
+            "selection": {
+              "matchedQueries": [
+                "Q2"
+              ]
+            },
+            "ref": {
+              "handle": "<handle>",
+              "indexId": "<index-id>",
+              "indexGeneration": 1,
+              "itemSha256": "b8a203f6bad92fb801b1fe6a690a3c89144ef8adb2fe489144d5fc32044b5f4a"
+            }
+          },
+          {
+            "id": "rank-auth:docs/api-catalog.md#API-AUTH-03",
+            "group": "direct",
+            "projectId": "rank-auth",
+            "kind": "api-catalog",
+            "knowledge": {
+              "status": "unverified",
+              "confirmed": false
+            },
+            "selection": {
+              "matchedQueries": [
+                "Q1"
+              ]
+            },
+            "ref": {
+              "handle": "<handle>",
+              "indexId": "<index-id>",
+              "indexGeneration": 1,
+              "itemSha256": "13053a49df8afaf9d1c464c2f60d4cee08cb84a41193109f61856f8e0ab93217"
+            }
+          },
+          {
+            "id": "rank-billing:docs/billing-architecture.md#모듈-구성",
+            "group": "direct",
+            "projectId": "rank-billing",
+            "kind": "architecture",
+            "knowledge": {
+              "status": "unverified",
+              "confirmed": false
+            },
+            "selection": {
+              "matchedQueries": [
+                "Q2"
+              ]
+            },
+            "ref": {
+              "handle": "<handle>",
+              "indexId": "<index-id>",
+              "indexGeneration": 1,
+              "itemSha256": "6e63a5a798f4a7e1700e027bff93ac45b6b61a96bceedf1c101c2b50024f4594"
+            }
+          }
+        ],
+        "limitations": [
+          {
+            "code": "budget-truncated"
+          },
+          {
+            "code": "keyword-only"
+          },
+          {
+            "code": "unconfirmed-results"
+          },
+          {
+            "code": "unresolved-links"
+          },
+          {
+            "code": "worktree-not-indexed"
+          }
+        ],
+        "budget": {
+          "limits": {
+            "maxItems": 6,
+            "maxExcerptChars": 1200,
+            "maxResponseBytes": 65536,
+            "priority": [
+              "mandatory",
+              "dependencies",
+              "direct",
+              "linked"
+            ]
+          },
+          "truncated": true,
+          "exceeded": false,
+          "omitted": [
+            {
+              "id": "rank-auth:docs/api-catalog.md#API-AUTH-01",
+              "segmentId": null,
+              "group": "direct",
+              "directRank": 5
+            },
+            {
+              "id": "rank-billing:docs/glossary.md#정산",
+              "segmentId": null,
+              "group": "direct",
+              "directRank": 6
+            },
+            {
+              "id": "rank-auth:docs/api-catalog.md#인증-api-목록",
+              "segmentId": null,
+              "group": "direct",
+              "directRank": 7
+            }
+          ],
+          "omittedCount": 3
+        },
+        "digests": {
+          "request": "<digest>",
+          "items": "<digest>",
+          "result": "<digest>"
+        }
+      }
+    },
+    {
+      "id": "search-auth",
+      "note": "두 번째 프로젝트는 남은 맥락 예산으로 부른다. 같은 (indexId, generation)을 그대로 쓴다.",
+      "argv": [
+        "search",
+        "--request",
+        "-"
+      ],
+      "request": {
+        "responseVersion": 2,
+        "profile": "master",
+        "queries": [
+          {
+            "key": "Q1",
+            "text": "세션 유지 시간"
+          }
+        ],
+        "scope": {
+          "projects": [
+            "rank-auth"
+          ]
+        },
+        "version": {
+          "generation": 1,
+          "indexId": "<index-id>",
+          "exact": true
+        },
+        "ranker": "legacy",
+        "budget": {
+          "maxItems": 2,
+          "maxResponseBytes": 32768
+        },
+        "limit": 10
+      },
+      "exitCode": 0,
+      "stdout": {
+        "schema": "agent-knowledge.search",
+        "schemaVersion": 2,
+        "status": "ok",
+        "index": {
+          "generation": 1,
+          "indexId": "<index-id>",
+          "selection": {
+            "by": "generation",
+            "exact": true
+          }
+        },
+        "retrieval": {
+          "outcome": "matched"
+        },
+        "items": [
+          {
+            "id": "rank-auth:docs/auth-policies.md#AUTH-POL-002",
+            "group": "mandatory",
+            "mandatory": true,
+            "knowledge": {
+              "status": "confirmed_policy",
+              "confirmed": true
+            }
+          },
+          {
+            "id": "rank-auth:docs/auth-policies.md#AUTH-POL-003",
+            "group": "direct",
+            "mandatory": false,
+            "knowledge": {
+              "status": "unverified",
+              "confirmed": false
+            }
+          }
+        ],
+        "budget": {
+          "truncated": true,
+          "exceeded": false,
+          "omittedCount": 3
+        }
+      }
+    },
+    {
+      "id": "lease-renew",
+      "note": "--ttl을 생략하면 기본 86400초로 다시 잡으므로 원하는 기간을 매번 준다.",
+      "argv": [
+        "lease",
+        "renew",
+        "--lease-id",
+        "<lease-id>",
+        "--ttl",
+        "7200"
+      ],
+      "exitCode": 0,
+      "stdout": {
+        "schema": "agent-knowledge.lease",
+        "schemaVersion": 1,
+        "ok": true,
+        "status": "ok",
+        "action": "renew",
+        "indexId": "<index-id>",
+        "lease": {
+          "leaseId": "<lease-id>",
+          "generation": 1,
+          "holder": "master-agent:mission-0001",
+          "acquiredAt": "<time>",
+          "renewedAt": "<time>",
+          "expiresAt": "<time>"
+        }
+      }
+    },
+    {
+      "id": "lease-list",
+      "note": "읽기 전용이다. 재시작한 master는 보유자 이름으로 자기 임대를 찾는다.",
+      "argv": [
+        "lease",
+        "list",
+        "--holder",
+        "master-agent:mission-0001"
+      ],
+      "exitCode": 0,
+      "stdout": {
+        "schema": "agent-knowledge.lease",
+        "schemaVersion": 1,
+        "ok": true,
+        "status": "ok",
+        "action": "list",
+        "indexId": "<index-id>",
+        "leases": [
+          {
+            "leaseId": "<lease-id>",
+            "generation": 1,
+            "holder": "master-agent:mission-0001",
+            "acquiredAt": "<time>",
+            "renewedAt": "<time>",
+            "expiresAt": "<time>",
+            "expired": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "lease-release",
+      "argv": [
+        "lease",
+        "release",
+        "--lease-id",
+        "<lease-id>"
+      ],
+      "exitCode": 0,
+      "stdout": {
+        "schema": "agent-knowledge.lease",
+        "schemaVersion": 1,
+        "ok": true,
+        "status": "ok",
+        "action": "release",
+        "indexId": "<index-id>",
+        "leaseId": "<lease-id>",
+        "released": true
+      }
+    },
+    {
+      "id": "lease-release-again",
+      "note": "여러 번 불러도 된다. 이미 풀었으면 released:false다.",
+      "argv": [
+        "lease",
+        "release",
+        "--lease-id",
+        "<lease-id>"
+      ],
+      "exitCode": 0,
+      "stdout": {
+        "schema": "agent-knowledge.lease",
+        "schemaVersion": 1,
+        "ok": true,
+        "status": "ok",
+        "action": "release",
+        "indexId": "<index-id>",
+        "leaseId": "<lease-id>",
+        "released": false
+      }
+    }
+  ]
+}

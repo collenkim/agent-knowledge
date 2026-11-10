@@ -1,0 +1,577 @@
+{
+  "schema": "agent-knowledge.contract-example",
+  "schemaVersion": 1,
+  "title": "참조 확인: 변조·범위 밖·다른 DB·지워진 세대",
+  "fixture": {
+    "workspace": "evals/fixtures/ranking-workspace",
+    "databases": [
+      "primary",
+      "other"
+    ]
+  },
+  "notes": [
+    "docs/integration.md의 '참조 실패 규칙'에 대응하는 정본 예제다. primary와 other는 같은 원본을 따로 색인한 두 DB라 세대 번호와 내용 해시가 같고 indexId만 다르다.",
+    "verify는 handle을 대조하지 않고 돌려줄 뿐이다. 받는 쪽은 handle을 직접 다시 계산해 비교한다. 변조 예제의 <handle>도 변조한 값으로 다시 계산했다.",
+    "reference.verdict가 intact가 아니면 current는 참고로만 본다. 다른 DB 참조에도 current는 이 DB의 활성 세대 기준으로 계산되기 때문이다.",
+    "indexId가 null인 최소 참조(형식 1 인계)는 다른 DB의 같은 세대 번호를 구별하지 못하고 내용 해시만 대조한다."
+  ],
+  "steps": [
+    {
+      "id": "verify-cases",
+      "note": "한 번의 호출로 여러 참조를 판정한다. 순서: 그대로, itemSha256 변조, commit 변조, segmentSha256 변조, 범위 밖 항목, 다른 DB의 indexId, 지워진 세대 번호, indexId 없는 최소 참조.",
+      "argv": [
+        "verify",
+        "--request",
+        "-"
+      ],
+      "request": {
+        "profile": "code",
+        "scope": {
+          "projects": [
+            "rank-auth"
+          ]
+        },
+        "references": [
+          {
+            "handle": "<handle>",
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "sourceId": "rank-auth",
+            "projectId": "rank-auth",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b",
+            "documentSha256": "5ea0512d02b1f18f741c056a930472c0e14f59025a30667ad4ed50f5881aa31a",
+            "blobSha": "03e76e5aeafca7a47c805163faf6df2857b1daa1",
+            "path": "docs/auth-policies.md",
+            "startLine": 9,
+            "endLine": 15,
+            "segmentId": null,
+            "segmentSha256": null,
+            "segmentStartLine": null,
+            "segmentEndLine": null
+          },
+          {
+            "handle": "<handle>",
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "sourceId": "rank-auth",
+            "projectId": "rank-auth",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "itemSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            "documentSha256": "5ea0512d02b1f18f741c056a930472c0e14f59025a30667ad4ed50f5881aa31a",
+            "blobSha": "03e76e5aeafca7a47c805163faf6df2857b1daa1",
+            "path": "docs/auth-policies.md",
+            "startLine": 9,
+            "endLine": 15,
+            "segmentId": null,
+            "segmentSha256": null,
+            "segmentStartLine": null,
+            "segmentEndLine": null
+          },
+          {
+            "handle": "<handle>",
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "sourceId": "rank-auth",
+            "projectId": "rank-auth",
+            "commit": "0000000000000000000000000000000000000000",
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b",
+            "documentSha256": "5ea0512d02b1f18f741c056a930472c0e14f59025a30667ad4ed50f5881aa31a",
+            "blobSha": "03e76e5aeafca7a47c805163faf6df2857b1daa1",
+            "path": "docs/auth-policies.md",
+            "startLine": 9,
+            "endLine": 15,
+            "segmentId": null,
+            "segmentSha256": null,
+            "segmentStartLine": null,
+            "segmentEndLine": null
+          },
+          {
+            "handle": "<handle>",
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "sourceId": "rank-auth",
+            "projectId": "rank-auth",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemId": "rank-auth:docs/token-guide.md#토큰-수명-주기",
+            "itemSha256": "c67da925da20982450e95eaa5c8fdd3a716807d6b77d6b6b822b9a4329ff7adf",
+            "documentSha256": "8de07d682ccc4559e0a7442a1ff126ad86d2e6c66fff0329472e10787361207a",
+            "blobSha": "0bfab2d018b26273f1944ff0c182da9bb0f07d82",
+            "path": "docs/token-guide.md",
+            "startLine": 9,
+            "endLine": 39,
+            "segmentId": "rank-auth:docs/token-guide.md#토큰-수명-주기#2",
+            "segmentSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            "segmentStartLine": 27,
+            "segmentEndLine": 39
+          },
+          {
+            "handle": "<handle>",
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "sourceId": "rank-billing",
+            "projectId": "rank-billing",
+            "commit": "a8c8055ef51f40a7f1962139014aab58b6c0a0e1",
+            "itemId": "rank-billing:docs/billing-architecture.md#정산-배치-구성",
+            "itemSha256": "b8a203f6bad92fb801b1fe6a690a3c89144ef8adb2fe489144d5fc32044b5f4a",
+            "documentSha256": "5a8aa7b9115dd41ae683218653b1732798359d3d27fca9e184b7022bb78588ac",
+            "blobSha": "c01522cdcc704eba9ec3853aad2eea68b7872e1a",
+            "path": "docs/billing-architecture.md",
+            "startLine": 13,
+            "endLine": 52,
+            "segmentId": null,
+            "segmentSha256": null,
+            "segmentStartLine": null,
+            "segmentEndLine": null
+          },
+          {
+            "handle": "<handle>",
+            "indexId": "<index-id:other>",
+            "indexGeneration": 1,
+            "sourceId": "rank-auth",
+            "projectId": "rank-auth",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b",
+            "documentSha256": "5ea0512d02b1f18f741c056a930472c0e14f59025a30667ad4ed50f5881aa31a",
+            "blobSha": "03e76e5aeafca7a47c805163faf6df2857b1daa1",
+            "path": "docs/auth-policies.md",
+            "startLine": 9,
+            "endLine": 15,
+            "segmentId": null,
+            "segmentSha256": null,
+            "segmentStartLine": null,
+            "segmentEndLine": null
+          },
+          {
+            "handle": "<handle>",
+            "indexId": "<index-id>",
+            "indexGeneration": 99,
+            "sourceId": "rank-auth",
+            "projectId": "rank-auth",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b",
+            "documentSha256": "5ea0512d02b1f18f741c056a930472c0e14f59025a30667ad4ed50f5881aa31a",
+            "blobSha": "03e76e5aeafca7a47c805163faf6df2857b1daa1",
+            "path": "docs/auth-policies.md",
+            "startLine": 9,
+            "endLine": 15,
+            "segmentId": null,
+            "segmentSha256": null,
+            "segmentStartLine": null,
+            "segmentEndLine": null
+          },
+          {
+            "indexId": null,
+            "indexGeneration": 1,
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b"
+          }
+        ]
+      },
+      "exitCode": 0,
+      "stdout": {
+        "schema": "agent-knowledge.verify",
+        "schemaVersion": 1,
+        "status": "ok",
+        "indexId": "<index-id>",
+        "results": [
+          {
+            "position": 0,
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "reference": {
+              "verdict": "intact",
+              "mismatches": []
+            },
+            "current": {
+              "state": "same"
+            }
+          },
+          {
+            "position": 1,
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "reference": {
+              "verdict": "mismatch",
+              "mismatches": [
+                "itemSha256"
+              ]
+            },
+            "current": {
+              "state": "changed"
+            }
+          },
+          {
+            "position": 2,
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "reference": {
+              "verdict": "mismatch",
+              "mismatches": [
+                "commit"
+              ]
+            },
+            "current": {
+              "state": "same"
+            }
+          },
+          {
+            "position": 3,
+            "itemId": "rank-auth:docs/token-guide.md#토큰-수명-주기",
+            "reference": {
+              "verdict": "mismatch",
+              "mismatches": [
+                "segmentSha256"
+              ]
+            },
+            "current": {
+              "state": "same"
+            }
+          },
+          {
+            "position": 4,
+            "itemId": "rank-billing:docs/billing-architecture.md#정산-배치-구성",
+            "reference": {
+              "verdict": "not-found",
+              "mismatches": []
+            },
+            "current": {
+              "state": "removed"
+            }
+          },
+          {
+            "position": 5,
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "reference": {
+              "verdict": "other-index",
+              "mismatches": []
+            },
+            "current": {
+              "state": "same"
+            }
+          },
+          {
+            "position": 6,
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "reference": {
+              "verdict": "generation-missing",
+              "mismatches": []
+            },
+            "current": {
+              "state": "same"
+            }
+          },
+          {
+            "position": 7,
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "reference": {
+              "verdict": "other-index",
+              "mismatches": []
+            },
+            "current": {
+              "state": "same"
+            }
+          }
+        ],
+        "summary": {
+          "total": 8,
+          "intact": 1,
+          "problems": 7,
+          "current": {
+            "same": 6,
+            "changed": 1,
+            "moved": 0,
+            "removed": 1
+          }
+        }
+      }
+    },
+    {
+      "id": "verify-on-other-db",
+      "db": "other",
+      "note": "같은 원본을 따로 색인한 DB는 세대 번호와 내용 해시가 같아도 indexId가 다르다.",
+      "argv": [
+        "verify",
+        "--request",
+        "-"
+      ],
+      "request": {
+        "profile": "code",
+        "scope": {
+          "projects": [
+            "rank-auth"
+          ]
+        },
+        "references": [
+          {
+            "handle": "<handle>",
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "sourceId": "rank-auth",
+            "projectId": "rank-auth",
+            "commit": "b6921e51ae0c2cef081cb1bfbb46954269096b87",
+            "itemId": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "itemSha256": "b0a0324ff7bc1261dadbcb464cf2d316bb34afd3f39be21a26c801ec6ece066b",
+            "documentSha256": "5ea0512d02b1f18f741c056a930472c0e14f59025a30667ad4ed50f5881aa31a",
+            "blobSha": "03e76e5aeafca7a47c805163faf6df2857b1daa1",
+            "path": "docs/auth-policies.md",
+            "startLine": 9,
+            "endLine": 15,
+            "segmentId": null,
+            "segmentSha256": null,
+            "segmentStartLine": null,
+            "segmentEndLine": null
+          }
+        ]
+      },
+      "exitCode": 0,
+      "stdout": {
+        "schema": "agent-knowledge.verify",
+        "indexId": "<index-id:other>",
+        "results": [
+          {
+            "reference": {
+              "verdict": "other-index"
+            },
+            "current": {
+              "state": "same"
+            }
+          }
+        ],
+        "summary": {
+          "total": 1,
+          "intact": 0,
+          "problems": 1,
+          "current": {
+            "same": 1,
+            "changed": 0,
+            "moved": 0,
+            "removed": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "get-other-index",
+      "note": "같은 세대 번호라도 다른 DB의 indexId면 그 번호를 쓰지 않는다.",
+      "argv": [
+        "get",
+        "--request",
+        "-"
+      ],
+      "request": {
+        "responseVersion": 2,
+        "id": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+        "profile": "code",
+        "scope": {
+          "projects": [
+            "rank-auth"
+          ]
+        },
+        "version": {
+          "generation": 1,
+          "indexId": "<index-id:other>",
+          "exact": true
+        }
+      },
+      "exitCode": 5,
+      "stdout": {
+        "schema": "agent-knowledge.error",
+        "schemaVersion": 1,
+        "ok": false,
+        "status": "error",
+        "command": "get",
+        "error": {
+          "code": "index-missing",
+          "message": "요청한 색인 식별자와 데이터베이스가 다릅니다",
+          "detail": {
+            "reason": "index-id-mismatch",
+            "expected": "<index-id:other>",
+            "actual": "<index-id>"
+          }
+        }
+      }
+    },
+    {
+      "id": "get-generation-missing",
+      "note": "고정한 세대가 없으면 활성 세대로 대신하지 않는다.",
+      "argv": [
+        "get",
+        "--request",
+        "-"
+      ],
+      "request": {
+        "responseVersion": 2,
+        "id": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+        "profile": "code",
+        "scope": {
+          "projects": [
+            "rank-auth"
+          ]
+        },
+        "version": {
+          "generation": 99,
+          "indexId": "<index-id>",
+          "exact": true
+        }
+      },
+      "exitCode": 5,
+      "stdout": {
+        "schema": "agent-knowledge.error",
+        "schemaVersion": 1,
+        "ok": false,
+        "status": "error",
+        "command": "get",
+        "error": {
+          "code": "index-missing",
+          "message": "색인 세대를 찾을 수 없습니다: 99",
+          "detail": {
+            "reason": "generation-not-found",
+            "generation": 99
+          }
+        }
+      }
+    },
+    {
+      "id": "get-hash-mismatch",
+      "argv": [
+        "get",
+        "--request",
+        "-"
+      ],
+      "request": {
+        "responseVersion": 2,
+        "id": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+        "profile": "code",
+        "scope": {
+          "projects": [
+            "rank-auth"
+          ]
+        },
+        "version": {
+          "generation": 1,
+          "indexId": "<index-id>",
+          "exact": true
+        },
+        "expect": {
+          "itemSha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      },
+      "exitCode": 2,
+      "stdout": {
+        "schema": "agent-knowledge.error",
+        "schemaVersion": 1,
+        "ok": false,
+        "status": "error",
+        "command": "get",
+        "error": {
+          "code": "invalid-request",
+          "message": "기대한 해시와 색인된 내용이 다릅니다",
+          "detail": {
+            "reason": "hash-mismatch",
+            "id": "rank-auth:docs/auth-policies.md#AUTH-POL-001",
+            "fields": [
+              "itemSha256"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "get-out-of-scope",
+      "note": "범위 밖 항목은 없는 항목과 똑같이 not-found다.",
+      "argv": [
+        "get",
+        "--request",
+        "-"
+      ],
+      "request": {
+        "responseVersion": 2,
+        "id": "rank-billing:docs/billing-architecture.md#정산-배치-구성",
+        "profile": "code",
+        "scope": {
+          "projects": [
+            "rank-auth"
+          ]
+        },
+        "version": {
+          "generation": 1,
+          "indexId": "<index-id>",
+          "exact": true
+        }
+      },
+      "exitCode": 3,
+      "stdout": {
+        "schema": "agent-knowledge.error",
+        "schemaVersion": 1,
+        "ok": false,
+        "status": "error",
+        "command": "get",
+        "error": {
+          "code": "not-found",
+          "message": "항목을 찾을 수 없습니다",
+          "detail": {
+            "id": "rank-billing:docs/billing-architecture.md#정산-배치-구성"
+          }
+        }
+      }
+    },
+    {
+      "id": "verify-widened-scope",
+      "note": "받는 쪽은 자기 범위로만 확인한다. code 프로필에 프로젝트를 더 넣으면 거절된다.",
+      "argv": [
+        "verify",
+        "--request",
+        "-"
+      ],
+      "request": {
+        "profile": "code",
+        "scope": {
+          "projects": [
+            "rank-auth",
+            "rank-billing"
+          ]
+        },
+        "references": [
+          {
+            "handle": "<handle>",
+            "indexId": "<index-id>",
+            "indexGeneration": 1,
+            "sourceId": "rank-billing",
+            "projectId": "rank-billing",
+            "commit": "a8c8055ef51f40a7f1962139014aab58b6c0a0e1",
+            "itemId": "rank-billing:docs/billing-architecture.md#정산-배치-구성",
+            "itemSha256": "b8a203f6bad92fb801b1fe6a690a3c89144ef8adb2fe489144d5fc32044b5f4a",
+            "documentSha256": "5a8aa7b9115dd41ae683218653b1732798359d3d27fca9e184b7022bb78588ac",
+            "blobSha": "c01522cdcc704eba9ec3853aad2eea68b7872e1a",
+            "path": "docs/billing-architecture.md",
+            "startLine": 13,
+            "endLine": 52,
+            "segmentId": null,
+            "segmentSha256": null,
+            "segmentStartLine": null,
+            "segmentEndLine": null
+          }
+        ]
+      },
+      "exitCode": 4,
+      "stdout": {
+        "schema": "agent-knowledge.error",
+        "schemaVersion": 1,
+        "ok": false,
+        "status": "error",
+        "command": "verify",
+        "error": {
+          "code": "invalid-scope",
+          "message": "이 프로필은 프로젝트를 정확히 하나만 받습니다",
+          "detail": {
+            "reason": "single-project-required",
+            "count": 2
+          }
+        }
+      }
+    }
+  ]
+}
