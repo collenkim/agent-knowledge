@@ -6,7 +6,7 @@ import { describe, it, type TestContext } from 'node:test';
 import { KnowledgeError, type ErrorCode } from '../src/errors.js';
 import { runIndex, type IndexResult, type ProgressEvent, type RunIndexOptions } from '../src/index.js';
 import { REQUIRED_TABLES, SCHEMA_VERSION } from '../src/indexing/schema.js';
-import { classifySchema, guardStore, openForRead, openForWrite, type Store } from '../src/indexing/store.js';
+import { classifySchema, guardStore, openExistingForWrite, openForRead, openForWrite, type Store } from '../src/indexing/store.js';
 import { RESOLVER_VERSION } from '../src/parsing/versions.js';
 import type { SourceConfig, SourcesConfig } from '../src/sources/config.js';
 import { addIndexEntry, commit, commitRawNames, git, hashObject, makeRepo, tempSpace, writeFiles, type RepoFiles, type TempSpace } from './helpers.js';
@@ -113,12 +113,12 @@ function makeForeignDatabase(path: string): void {
 }
 
 describe('store', () => {
-  const SCHEMA = ['documents', 'generation_documents', 'generation_items', 'generation_sources', 'generations', 'index_runs', 'item_paths', 'items', 'items_fts', 'meta'];
+  const SCHEMA = ['documents', 'generation_documents', 'generation_items', 'generation_leases', 'generation_sources', 'generations', 'index_runs', 'item_paths', 'item_segments', 'items', 'items_fts', 'meta', 'segments_fts'];
 
   it('creates parent directories, the schema and write pragmas', (t) => {
     const space = tempSpace(t);
     const { db } = space.track(openForWrite(space.path('a', 'b', 'k.sqlite')));
-    const names = all<{ name: string }>(db, "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'items_fts_%' AND name <> 'sqlite_sequence' ORDER BY name").map((row) => row.name);
+    const names = all<{ name: string }>(db, "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'items_fts_%' AND name NOT LIKE 'segments_fts_%' AND name <> 'sqlite_sequence' ORDER BY name").map((row) => row.name);
     assert.deepEqual(names, SCHEMA);
     assert.equal(scalar(db, 'SELECT user_version AS value FROM pragma_user_version'), SCHEMA_VERSION);
     assert.equal(scalar(db, 'SELECT foreign_keys AS value FROM pragma_foreign_keys'), 1);
@@ -177,7 +177,7 @@ describe('store', () => {
 
   it('lists every table a fresh database has as required', (t) => {
     const { db } = setup(t);
-    const tables = all<{ name: string }>(db, "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE 'items_fts_%'").map((row) => row.name);
+    const tables = all<{ name: string }>(db, "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE 'items_fts_%' AND name NOT LIKE 'segments_fts_%'").map((row) => row.name);
     assert.deepEqual(tables.sort(), [...REQUIRED_TABLES].sort());
   });
 
@@ -206,17 +206,24 @@ describe('store', () => {
     });
   }
 
-  it('does not switch a foreign current-version database to WAL', (t) => {
-    const space = tempSpace(t);
-    const path = space.path('foreign-current.sqlite');
-    const seed = new DatabaseSync(path);
-    seed.exec(`CREATE TABLE other(a); PRAGMA user_version=${SCHEMA_VERSION}`);
-    seed.close();
-    thrownBy(() => openForWrite(path), 'store-unavailable');
-    const raw = space.track(new DatabaseSync(path));
-    assert.equal(all<{ journal_mode: string }>(raw, 'PRAGMA journal_mode')[0]!.journal_mode, 'delete');
-    assert.deepEqual(all<{ name: string }>(raw, "SELECT name FROM sqlite_master WHERE type = 'table'").map((row) => row.name), ['other']);
-  });
+  // 옛 스키마 번호(1)도 남의 DB나 손상된 색인에 남는다. 마이그레이션 대상으로 보면 저널 모드를 바꾸고 없는 테이블을 고치려 한다
+  for (const version of [1, SCHEMA_VERSION]) {
+    it(`does not switch a foreign database with user_version ${version} to WAL and reports it as unknown-database`, (t) => {
+      const space = tempSpace(t);
+      const path = space.path(`foreign-v${version}.sqlite`);
+      const seed = new DatabaseSync(path);
+      seed.exec(`CREATE TABLE other(a); PRAGMA user_version=${version}`);
+      seed.close();
+      for (const open of [openForWrite, openForRead, openExistingForWrite]) {
+        const error = thrownBy(() => open(path), 'store-unavailable');
+        assert.equal((error.detail as { reason: string }).reason, 'unknown-database', open.name);
+      }
+      const raw = space.track(new DatabaseSync(path));
+      assert.equal(all<{ journal_mode: string }>(raw, 'PRAGMA journal_mode')[0]!.journal_mode, 'delete');
+      assert.equal(scalar(raw, 'SELECT user_version AS value FROM pragma_user_version'), version);
+      assert.deepEqual(all<{ name: string }>(raw, "SELECT name FROM sqlite_master WHERE type = 'table'").map((row) => row.name), ['other']);
+    });
+  }
 
   it('leaves a foreign database untouched when refusing it', (t) => {
     const space = tempSpace(t);
@@ -259,7 +266,7 @@ describe('store', () => {
     const writer = space.track(openForWrite(path));
     writer.db.exec("INSERT INTO meta VALUES('a','1')");
     const reader = space.track(openForRead(path));
-    const count = (db: DatabaseSync): number => scalar(db, 'SELECT count(*) AS value FROM meta');
+    const count = (db: DatabaseSync): number => scalar(db, "SELECT count(*) AS value FROM meta WHERE key IN ('a', 'b')");
     const seen = reader.read((db) => {
       const first = count(db);
       writer.db.exec("INSERT INTO meta VALUES('b','2')");

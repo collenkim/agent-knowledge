@@ -25,8 +25,12 @@ export interface MaterializedWorkspace {
   dispose(): void;
 }
 
+/** 작성자·시각을 고정해 같은 fixture는 실행마다 같은 커밋 SHA가 되게 한다. 기록한 순위 목록끼리 커밋으로 대조할 수 있어야 한다. */
+const FIXTURE_DATE = '2026-01-01T00:00:00Z';
+
 function git(repo: string, args: string[]): void {
-  execFileSync('git', ['-C', repo, ...FIXTURE_GIT, ...args], { shell: false, windowsHide: true, timeout: GIT_TIMEOUT_MS, stdio: ['ignore', 'pipe', 'pipe'], env: gitChildEnv() });
+  const env = { ...gitChildEnv(), GIT_AUTHOR_DATE: FIXTURE_DATE, GIT_COMMITTER_DATE: FIXTURE_DATE };
+  execFileSync('git', ['-C', repo, ...FIXTURE_GIT, ...args], { shell: false, windowsHide: true, timeout: GIT_TIMEOUT_MS, stdio: ['ignore', 'pipe', 'pipe'], env });
 }
 
 function readWorkspace(workspace: string): z.infer<typeof workspaceSchema> {

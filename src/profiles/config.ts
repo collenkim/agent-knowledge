@@ -4,6 +4,7 @@ import { parse } from 'yaml';
 import { z } from 'zod';
 import { KnowledgeError } from '../errors.js';
 import { EFFECTIVE_STATUSES, KINDS, PHASES } from '../model.js';
+import { canonicalJson, sha256 } from '../util/hash.js';
 
 const RESERVED_SECTIONS = new Set(['mandatory', 'dependencies']);
 const weight = z.number().positive();
@@ -45,13 +46,55 @@ const configSchema = z.strictObject({
     fieldBoosts: z.strictObject({ keyOrAlias: z.number().min(0), title: z.number().min(0), pathOverlap: z.number().min(0), explicitKey: z.number().min(0) }),
     fieldWeights: z.strictObject({ key_aliases: weight, title: weight, headings: weight, body: weight }),
     candidateLimit: z.number().int().min(1),
+    /** 선택형 BM25 순위(`ranker: bm25`)의 매개변수. 생략하면 BM25_DEFAULTS를 쓴다. 기본 순위에는 영향이 없다. */
+    bm25: z
+      .strictObject({
+        k1: z.number().min(0).optional(),
+        b: z.number().min(0).max(1).optional(),
+        fieldWeights: z.strictObject({ key_aliases: weight, title: weight, headings: weight, body: weight }).optional(),
+      })
+      .optional(),
   }),
+  /** 응답 형식 2의 질의 상한. 생략하면 QUERY_LIMIT_DEFAULTS를 쓴다. 기존 형식 요청에는 적용하지 않는다. */
+  limits: z
+    .strictObject({
+      maxQueries: z.number().int().min(1).max(256).optional(),
+      maxQueryChars: z.number().int().min(1).optional(),
+      maxTermsPerQuery: z.number().int().min(1).optional(),
+      maxTotalTerms: z.number().int().min(1).optional(),
+    })
+    .optional(),
   profiles: z.strictObject({ master: profileSchema, code: profileSchema }),
 });
 
 export type RetrievalConfig = z.infer<typeof configSchema>;
 export type ProfileConfig = RetrievalConfig['profiles']['master'];
 export type RankingConfig = RetrievalConfig['ranking'];
+
+export const BM25_DEFAULTS = { k1: 1.2, b: 0.75, fieldWeights: { key_aliases: 4, title: 3, headings: 2, body: 1 } } as const;
+export const QUERY_LIMIT_DEFAULTS = { maxQueries: 32, maxQueryChars: 4000, maxTermsPerQuery: 48, maxTotalTerms: 256 } as const;
+
+export interface Bm25Config {
+  k1: number;
+  b: number;
+  fieldWeights: { key_aliases: number; title: number; headings: number; body: number };
+}
+
+export type QueryLimits = { -readonly [K in keyof typeof QUERY_LIMIT_DEFAULTS]: number };
+
+export function bm25Of(ranking: RankingConfig): Bm25Config {
+  return { k1: ranking.bm25?.k1 ?? BM25_DEFAULTS.k1, b: ranking.bm25?.b ?? BM25_DEFAULTS.b, fieldWeights: { ...BM25_DEFAULTS.fieldWeights, ...ranking.bm25?.fieldWeights } };
+}
+
+export function queryLimitsOf(config: RetrievalConfig): QueryLimits {
+  return { ...QUERY_LIMIT_DEFAULTS, ...config.limits };
+}
+
+/** 같은 세대라도 검색 설정이 다르면 결과가 다르므로, 결과를 고정하려는 소비자는 이 해시를 함께 기록한다. 기본값을 채운 뒤 계산한다. */
+export function configHashOf(config: RetrievalConfig, profile: 'master' | 'code'): string {
+  const ranking = { ...config.ranking, bm25: bm25Of(config.ranking) };
+  return sha256(canonicalJson({ schemaVersion: config.schemaVersion, ranking, limits: queryLimitsOf(config), profile: config.profiles[profile] }));
+}
 
 export function loadRetrievalConfig(path: string): RetrievalConfig {
   const configPath = resolve(path);

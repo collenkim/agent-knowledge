@@ -18,9 +18,33 @@ CREATE TABLE generation_items(generation INTEGER NOT NULL REFERENCES generations
 CREATE INDEX generation_items_item ON generation_items(item_pk);
 CREATE VIRTUAL TABLE items_fts USING fts5(key_aliases, title, headings, body, ngram_title, ngram_body, tokenize="unicode61 remove_diacritics 2");
 `,
+  `
+ALTER TABLE items ADD COLUMN token_count INTEGER;
+ALTER TABLE items ADD COLUMN operations_json TEXT;
+ALTER TABLE items ADD COLUMN declaration_json TEXT;
+ALTER TABLE generations ADD COLUMN activated INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE generation_sources ADD COLUMN ref_origin TEXT;
+ALTER TABLE generation_sources ADD COLUMN config_sha256 TEXT;
+CREATE TABLE item_segments(segment_pk INTEGER PRIMARY KEY, item_pk INTEGER NOT NULL REFERENCES items ON DELETE CASCADE, ordinal INTEGER NOT NULL, segment_id TEXT NOT NULL, start_line INTEGER NOT NULL, end_line INTEGER NOT NULL, content TEXT NOT NULL, content_sha256 TEXT NOT NULL, token_count INTEGER NOT NULL, UNIQUE(item_pk, ordinal));
+CREATE INDEX item_segments_id ON item_segments(segment_id);
+CREATE VIRTUAL TABLE segments_fts USING fts5(key_aliases, title, headings, body, ngram_title, ngram_body, tokenize="unicode61 remove_diacritics 2");
+CREATE TABLE generation_leases(lease_id TEXT PRIMARY KEY, generation INTEGER NOT NULL REFERENCES generations ON DELETE CASCADE, holder TEXT NOT NULL, acquired_at TEXT NOT NULL, renewed_at TEXT NOT NULL, expires_at TEXT NOT NULL) WITHOUT ROWID;
+CREATE INDEX generation_leases_generation ON generation_leases(generation);
+INSERT OR IGNORE INTO meta(key, value) VALUES('index_id', lower(hex(randomblob(16))));
+`,
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS.length;
 
+/** 읽기만 하는 연결이 받아들이는 가장 낮은 스키마. 이보다 높고 최신보다 낮으면 기존 형식(v1) 요청만 처리한다. */
+export const MIN_READABLE_SCHEMA = 1;
+
 /** 현재 스키마의 테이블. 마이그레이션에 테이블을 추가하면 여기에도 적는다. */
-export const REQUIRED_TABLES: readonly string[] = ['meta', 'index_runs', 'generations', 'generation_sources', 'documents', 'generation_documents', 'items', 'item_paths', 'generation_items', 'items_fts'];
+export const REQUIRED_TABLES: readonly string[] = ['meta', 'index_runs', 'generations', 'generation_sources', 'documents', 'generation_documents', 'items', 'item_paths', 'generation_items', 'items_fts', 'item_segments', 'segments_fts', 'generation_leases'];
+
+/** 마이그레이션 위치(0부터)별로 처음 생긴 테이블. 옛 스키마를 읽을 때 그 버전에 있어야 할 테이블만 확인한다. */
+const TABLE_SINCE: Readonly<Record<string, number>> = { item_segments: 1, segments_fts: 1, generation_leases: 1 };
+
+export function requiredTablesAt(version: number): string[] {
+  return REQUIRED_TABLES.filter((table) => (TABLE_SINCE[table] ?? 0) < version);
+}

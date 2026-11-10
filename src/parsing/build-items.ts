@@ -1,8 +1,10 @@
-import { isKind, normalizeStatus, type BasisRef, type Diagnostic, type Kind, type ParsedItem, type SourceRule } from '../model.js';
+import { isKind, normalizeStatus, type BasisRef, type Diagnostic, type Kind, type ParsedItem, type ParsedSegment, type SourceRule, type StatusDeclaration } from '../model.js';
 import { sha256 } from '../util/hash.js';
-import { mergeRelations, parseFields, type ParsedFields } from './fields.js';
+import { mergeOperations, mergeRelations, parseFields, type ParsedFields } from './fields.js';
 import { parseFrontmatter, type DocumentMeta } from './frontmatter.js';
 import { scanMarkdown, wholeDocumentSection } from './markdown.js';
+import { splitSegments } from './segments.js';
+import { tokenCountOf } from './tokenize.js';
 
 export interface BuildDocumentInput {
   sourceId: string;
@@ -26,11 +28,29 @@ interface StatusLayer {
 }
 
 /** 상태와 근거를 함께 물려받는다. 다른 상태를 선언한 층의 근거가 이 상태를 뒷받침해서는 안 된다. */
-function declaredFromChain(chain: readonly StatusLayer[]): StatusLayer {
-  const statusRaw = chain.find((layer) => layer.statusRaw !== null)?.statusRaw ?? null;
+function declaredFromChain(chain: readonly StatusLayer[]): StatusLayer & { layer: number } {
+  const layer = chain.findIndex((entry) => entry.statusRaw !== null);
+  const statusRaw = layer < 0 ? null : chain[layer]!.statusRaw;
   const status = statusRaw === null ? null : normalizeStatus(statusRaw);
-  const usable = (layer: StatusLayer): boolean => statusRaw === null || layer.statusRaw === null || normalizeStatus(layer.statusRaw) === status;
-  return { statusRaw, basisRefs: chain.find((layer) => layer.basisRefs.length > 0 && usable(layer))?.basisRefs ?? [] };
+  const usable = (entry: StatusLayer): boolean => statusRaw === null || entry.statusRaw === null || normalizeStatus(entry.statusRaw) === status;
+  return { statusRaw, basisRefs: chain.find((entry) => entry.basisRefs.length > 0 && usable(entry))?.basisRefs ?? [], layer };
+}
+
+/** 상태 값을 정한 층을 이름으로 바꾸고, 이 절의 비공식 표기 중 실제로 쓴 것을 표시한다. */
+function declarationOf(fields: ParsedFields, chain: readonly ParsedFields[], layer: number): StatusDeclaration {
+  let origin: StatusDeclaration['origin'] = null;
+  if (layer === 0) origin = fields.statusRaw !== null ? 'field' : 'informal';
+  else if (layer > 0 && layer < chain.length) origin = chain[layer]!.statusRaw !== null ? 'ancestor-field' : 'ancestor-informal';
+  else if (layer === chain.length) origin = 'frontmatter';
+  return {
+    origin,
+    informal: fields.informalStatuses.map((entry, index) => ({
+      raw: entry.raw,
+      normalized: entry.status,
+      syntax: entry.syntax,
+      applied: origin === 'informal' && index === fields.informalApplied,
+    })),
+  };
 }
 
 function baseName(path: string): string {
@@ -82,15 +102,31 @@ export function buildDocumentItems(input: BuildDocumentInput): BuiltDocument {
     const declared = declaredFromChain([layers[ordinal]!, ...section.ancestors.map((index) => layers[index]!), frontmatterLayer]);
     const { statusRaw } = declared;
     const ancestorConflicts = ancestors.flatMap((ancestor) => ancestor.relations.conflicts_with ?? []);
+    const itemId = `${sourceId}:${path}#${section.anchor}`;
+    const aliases = ordinal === 0 ? [...new Set([...fields.aliases, ...meta.aliases, ...(meta.title ? [meta.title] : [])])] : fields.aliases;
+    const itemTitle = section.unit === 'document' ? title : section.title;
+    const indexable = { key: section.key ?? (ordinal === 0 ? meta.id : null), aliases, title: itemTitle, headingPath: section.headingPath };
+    const spans = splitSegments(section.content, section.startLine, scanned.opaque.slice(section.startLine - 1, section.endLine));
+    const segments = spans.map(
+      (span, index): ParsedSegment => ({
+        ordinal: index + 1,
+        segmentId: `${itemId}#${index + 1}`,
+        startLine: span.startLine,
+        endLine: span.endLine,
+        content: span.content,
+        contentSha256: sha256(span.content),
+        tokenCount: tokenCountOf({ ...indexable, content: span.content }),
+      }),
+    );
     return {
       ordinal,
-      itemId: `${sourceId}:${path}#${section.anchor}`,
+      itemId,
       projectId,
-      key: section.key ?? (ordinal === 0 ? meta.id : null),
+      key: indexable.key,
       anchor: section.anchor,
       unit: section.unit,
       kind: fieldKind ?? meta.kind ?? rule?.kind ?? input.defaultKind ?? 'reference',
-      title: section.unit === 'document' ? title : section.title,
+      title: itemTitle,
       headingPath: section.headingPath,
       content: section.content,
       contentSha256: sha256(section.content),
@@ -102,9 +138,14 @@ export function buildDocumentItems(input: BuildDocumentInput): BuiltDocument {
       rule,
       mandatory: fields.mandatory || ancestors.some((ancestor) => ancestor.mandatory) || meta.mandatory || (rule?.mandatory ?? false),
       // 문서 별칭을 모든 항목에 주면 명시 키 조회가 문서 전체에 걸리므로 id를 받는 첫 항목에만 준다. 문서 제목도 같은 이유다
-      aliases: ordinal === 0 ? [...new Set([...fields.aliases, ...meta.aliases, ...(meta.title ? [meta.title] : [])])] : fields.aliases,
+      aliases,
       appliesTo: appliesToOf(fields, meta),
       relations: mergeRelations(meta.relations, ancestorConflicts.length > 0 ? { conflicts_with: ancestorConflicts } : {}, fields.relations),
+      // frontmatter의 범위 HTTP 작업은 적용 조건에 들어 있으므로, 절이 자기 조건으로 덮으면 함께 빠진다
+      operations: mergeOperations(fields.conditions === null ? meta.operations : meta.operations.filter((operation) => operation.field !== 'scope'), fields.operations),
+      declaration: declarationOf(fields, [fields, ...ancestors], declared.layer),
+      tokenCount: tokenCountOf({ ...indexable, content: section.content }),
+      segments,
     };
   });
 

@@ -1,0 +1,14 @@
+# 순위 평가 전용 작업 공간이다. 아래 원본은 모두 테스트용 자료이며 실제 프로젝트 정책이 아니다.
+# 긴 절(조각 분할), 표·코드 블록, HTTP 작업 표기, 필수 지정 항목, 프로젝트 사이에 겹치는 어휘를 일부러 넣었다.
+schemaVersion: 1
+sources:
+  - id: rank-auth
+    project: rank-auth
+    include: ['docs/**/*.md']
+    exclude: ['docs/decisions/**']
+    defaultKind: reference
+  - id: rank-billing
+    project: rank-billing
+    include: ['docs/**/*.md']
+    exclude: ['docs/decisions/**']
+    defaultKind: reference

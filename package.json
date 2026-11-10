@@ -19,7 +19,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "npm run build && node --test --test-concurrency=4 \"dist/tests/**/*.test.js\"",
-    "eval": "npm run build && node dist/src/cli/main.js eval"
+    "eval": "npm run build && node dist/src/cli/main.js eval",
+    "eval:ranking": "npm run build && node dist/src/cli/main.js eval --suite evals/ranking --variants evals/ranking-variants.yaml"
   },
   "dependencies": {
     "yaml": "2.9.1",

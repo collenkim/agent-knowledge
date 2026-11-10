@@ -35,6 +35,16 @@ export function hangulBigrams(text: string): string[] {
 
 type IndexableItem = Pick<ParsedItem, 'key' | 'aliases' | 'title' | 'headingPath' | 'content'>;
 
+/** BM25의 문서 길이. 색인 열에 들어가는 낱말 수의 합이라 바이그램 열은 세지 않는다. */
+export function tokenCountOf(item: IndexableItem): number {
+  return (
+    wordsOf([item.key ?? '', ...item.aliases].join(' ')).length +
+    wordsOf(item.title).length +
+    wordsOf(item.headingPath.join(' ')).length +
+    wordsOf(item.content).length
+  );
+}
+
 export function indexColumns(item: IndexableItem): Record<'key_aliases' | 'title' | 'headings' | 'body' | 'ngram_title' | 'ngram_body', string> {
   const headings = item.headingPath.join(' ');
   return {

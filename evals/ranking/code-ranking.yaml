@@ -1,0 +1,48 @@
+# code 프로필 순위 평가 묶음이다. code 프로필은 프로젝트 하나만 받으므로 사례마다 범위를 정한다.
+# 정답은 evals/fixtures/ranking-workspace의 테스트용 자료를 보고 적은 잠정 정답이다.
+schemaVersion: 2
+suite: code-ranking
+profile: code
+corpus: synthetic
+fixture: true
+judgments: provisional
+workspace: ../fixtures/ranking-workspace
+cases:
+  - id: RC-01-session-timeout
+    request: {query: 세션 유지 시간, scope: {projects: [rank-auth]}}
+    relevant:
+      - {id: 'rank-auth:docs/auth-policies.md#AUTH-POL-003'}
+
+  - id: RC-02-admin-mfa
+    request: {query: 관리자 다중 인증, scope: {projects: [rank-auth]}}
+    relevant:
+      - {id: 'rank-auth:docs/auth-policies.md#AUTH-POL-004'}
+
+  - id: RC-03-cancel-prorated-refund
+    request: {query: 구독 해지 일할 환불, scope: {projects: [rank-billing]}}
+    relevant:
+      - {id: 'rank-billing:docs/billing-rules.md#BIL-006', grade: 3}
+      - {id: 'rank-billing:docs/billing-rules.md#BIL-004', grade: 1, required: false}
+      - {id: 'rank-billing:docs/glossary.md#일할-계산', grade: 1, required: false}
+
+  - id: RC-04-settlement-rerun-long-section
+    request: {query: 정산 재처리 보관 테이블, scope: {projects: [rank-billing]}}
+    relevant:
+      - {id: 'rank-billing:docs/billing-architecture.md#정산-배치-구성'}
+    expectKinds: [architecture]
+
+  - id: RC-05-logout-api
+    request: {query: 로그아웃 API, scope: {projects: [rank-auth]}}
+    relevant:
+      - {id: 'rank-auth:docs/api-catalog.md#API-AUTH-03'}
+
+  - id: RC-06-document-filter
+    request: {query: 청구서, scope: {projects: [rank-billing]}, filters: {documents: [docs/billing-rules.md]}}
+    relevant:
+      - {id: 'rank-billing:docs/billing-rules.md#BIL-002'}
+      - {id: 'rank-billing:docs/billing-rules.md#BIL-003'}
+
+  - id: RC-07-token-error
+    request: {query: 토큰 오류 응답 401, scope: {projects: [rank-auth]}}
+    relevant:
+      - {id: 'rank-auth:docs/token-guide.md#토큰-오류-응답'}

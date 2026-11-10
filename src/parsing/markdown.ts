@@ -26,6 +26,8 @@ interface ScannedMarkdown {
   sections: MarkdownSection[];
   /** BOM과 줄바꿈을 정리한 문서 전체. */
   text: string;
+  /** 줄마다 펜스·HTML 주석·원시 HTML·들여쓰기 코드·frontmatter 안인지. 긴 항목을 나눌 때 이 줄들 사이를 자르지 않는다. */
+  opaque: boolean[];
 }
 
 interface Heading {
@@ -369,7 +371,8 @@ export function scanMarkdown(rawText: string): ScannedMarkdown {
   }
 
   const firstH1 = headings.find((heading) => heading.level === 1)?.text || null;
-  return { lineCount, frontmatter, frontmatterError, firstH1, sections, text: lines.slice(0, lineCount).join('\n') };
+  for (let i = 0; i < bodyStart; i++) opaque[i] = true;
+  return { lineCount, frontmatter, frontmatterError, firstH1, sections, text: lines.slice(0, lineCount).join('\n'), opaque: opaque.slice(0, lineCount) };
 }
 
 /** 절이 하나도 나오지 않은 문서를 대신하는 문서 전체 항목. */

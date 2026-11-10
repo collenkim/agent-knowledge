@@ -1,0 +1,23 @@
+# 순위 평가 변형이다. BM25, 종류 가중치, 조각 분할의 효과를 하나씩 떼어 본다.
+# 기준(baseline)은 기본 검색과 같은 legacy다. 기본 검색의 순위 방식은 이 비교만으로 바꾸지 않는다.
+schemaVersion: 1
+baseline: legacy
+variants:
+  - id: legacy
+    description: 기본 검색과 같은 순위(legacy, 조각 없음, 설정의 종류 가중치)
+  - id: legacy-flat-kinds
+    description: legacy에서 종류 가중치만 모두 1로 둔다
+    retrieval: {flatKindWeights: true}
+  - id: legacy-segments
+    description: legacy에 긴 절 조각 단위 점수를 더한다
+    request: {segments: true}
+  - id: bm25
+    description: 범위 안 통계로 계산한 BM25
+    request: {ranker: bm25}
+  - id: bm25-flat-kinds
+    description: BM25에서 종류 가중치만 모두 1로 둔다
+    request: {ranker: bm25}
+    retrieval: {flatKindWeights: true}
+  - id: bm25-segments
+    description: BM25에 긴 절 조각 단위 점수를 더한다
+    request: {ranker: bm25, segments: true}

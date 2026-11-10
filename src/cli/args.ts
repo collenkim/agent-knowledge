@@ -2,7 +2,9 @@ import { readFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
 import { KnowledgeError } from '../errors.js';
 
-export const COMMANDS = ['validate', 'index', 'status', 'search', 'get', 'eval'] as const;
+export const COMMANDS = ['validate', 'index', 'status', 'search', 'get', 'eval', 'capabilities', 'verify', 'lease'] as const;
+export const LEASE_ACTIONS = ['acquire', 'renew', 'release', 'list'] as const;
+export type LeaseAction = (typeof LEASE_ACTIONS)[number];
 export type Command = (typeof COMMANDS)[number];
 
 export type Values = Record<string, string | string[] | boolean | undefined>;
@@ -28,30 +30,50 @@ const SHARED: Record<string, OptionSpec> = {
 
 const SCOPE: Record<string, OptionSpec> = { profile: text, project: many, 'allow-link': many, generation: text, commit: many, request: text };
 
-const OPTIONS: Record<Command, Record<string, OptionSpec>> = {
+const RESPONSE_VERSION: Record<string, OptionSpec> = { 'response-version': text };
+
+const OPTIONS: Record<Exclude<Command, 'lease'>, Record<string, OptionSpec>> = {
   validate: {},
-  index: { ref: many },
-  status: {},
-  search: { ...SCOPE, query: text, kind: many, status: many, phase: text, path: many, limit: text },
-  get: { ...SCOPE, id: text },
-  eval: { suite: many },
+  index: { ref: many, 'no-activate': { type: 'boolean' }, 'lease-holder': text, 'lease-ttl': text, ...RESPONSE_VERSION },
+  status: { ...RESPONSE_VERSION },
+  search: { ...SCOPE, query: text, kind: many, status: many, phase: text, path: many, limit: text, ...RESPONSE_VERSION },
+  get: { ...SCOPE, id: text, ...RESPONSE_VERSION },
+  eval: { suite: many, variants: text, record: text, baseline: many, ...RESPONSE_VERSION },
+  capabilities: {},
+  verify: { request: text },
+};
+
+const LEASE_OPTIONS: Record<LeaseAction, Record<string, OptionSpec>> = {
+  acquire: { generation: text, holder: text, ttl: text, 'index-id': text },
+  renew: { 'lease-id': text, ttl: text },
+  release: { 'lease-id': text },
+  list: { holder: text },
 };
 
 export const HELP = `agent-knowledge <명령> [옵션]
 
 명령:
   validate   수집 설정과 검색 설정을 검사합니다
-  index      등록된 원본을 색인합니다 [--ref <원본>=<리비전>]...
-  status     색인 상태를 조회합니다
+  index      등록된 원본을 색인합니다 [--ref <원본>=<리비전>]... [--no-activate]
+             [--response-version 2 [--lease-holder <이름> [--lease-ttl <초>]]]
+  status     색인 상태를 조회합니다 [--response-version 2]
   search     근거를 검색합니다
              --profile master|code --project <ID>... [--query <문장>] [--path <경로>]...
              [--allow-link <프로젝트>[:종류[,종류]]]... [--kind <종류>]... [--status <상태>]...
              [--generation <세대>] [--commit <원본>=<SHA>]... [--phase <단계>] [--limit <개수>]
-             또는 --request <파일|->
+             또는 --request <파일|->. [--response-version 2]
   get        항목 하나를 조회합니다
              --id <ID> --profile master|code --project <ID>... [--allow-link ...]
-             [--generation <세대>] [--commit <원본>=<SHA>]... 또는 --request <파일|->
+             [--generation <세대>] [--commit <원본>=<SHA>]... 또는 --request <파일|->. [--response-version 2]
   eval       평가 묶음을 실행합니다 [--suite <파일|디렉터리>]...
+             [--variants <파일>] [--record <디렉터리>] [--baseline <순위 목록 파일>]... [--response-version 2]
+  capabilities  이 빌드가 지원하는 응답 형식·순위 방식·한도를 알립니다(색인 DB가 필요 없습니다)
+  verify     넘겨받은 근거 참조를 다시 확인합니다 --request <파일|->
+  lease      세대를 GC에서 지키는 임대를 다룹니다
+             lease acquire --holder <이름> [--generation <세대>] [--ttl <초>] [--index-id <ID>]
+             lease renew --lease-id <ID> [--ttl <초>]
+             lease release --lease-id <ID>
+             lease list [--holder <이름>]
 
 공통 옵션:
   --config <경로>            원본 설정 (환경변수 AGENT_KNOWLEDGE_CONFIG)
@@ -75,19 +97,33 @@ export function knownCommand(argv: readonly string[]): Command | null {
   return isCommand(argv[0]) ? argv[0] : null;
 }
 
+function isLeaseAction(value: string | undefined): value is LeaseAction {
+  return (LEASE_ACTIONS as readonly (string | undefined)[]).includes(value);
+}
+
+function parseOptions(args: readonly string[], options: Record<string, OptionSpec>): Values {
+  try {
+    return parseArgs({ args: [...args], options: { ...SHARED, ...options }, strict: true, allowPositionals: false }).values as Values;
+  } catch (error) {
+    if (!String((error as { code?: unknown }).code).startsWith('ERR_PARSE_ARGS')) throw error;
+    throw usage((error as Error).message);
+  }
+}
+
 export function parseCommandLine(argv: readonly string[]): ParsedCommandLine {
   const first = argv[0];
   if (first === 'help' || first === '--help' || first === '-h') return { help: true };
   if (first === undefined) throw usage('명령을 지정해 주십시오', { commands: COMMANDS });
   if (!isCommand(first)) throw usage(`알 수 없는 명령입니다: ${first}`, { commands: COMMANDS });
 
-  let values: Values;
-  try {
-    values = parseArgs({ args: argv.slice(1), options: { ...SHARED, ...OPTIONS[first] }, strict: true, allowPositionals: false }).values as Values;
-  } catch (error) {
-    if (!String((error as { code?: unknown }).code).startsWith('ERR_PARSE_ARGS')) throw error;
-    throw usage((error as Error).message);
+  if (first === 'lease') {
+    const action = argv[1];
+    if (action === '--help' || action === '-h') return { help: true };
+    if (!isLeaseAction(action)) throw usage(action === undefined ? 'lease 동작을 지정해 주십시오' : `알 수 없는 lease 동작입니다: ${action}`, { actions: LEASE_ACTIONS });
+    const values = parseOptions(argv.slice(2), LEASE_OPTIONS[action]);
+    return values.help ? { help: true } : { help: false, command: first, values: { ...values, action } };
   }
+  const values = parseOptions(argv.slice(1), OPTIONS[first]);
   return values.help ? { help: true } : { help: false, command: first, values };
 }
 
@@ -115,7 +151,7 @@ export function parsePairs(values: Values, flag: string): Map<string, string> {
   return pairs;
 }
 
-function parseInteger(raw: string, flag: string): number {
+export function parseInteger(raw: string, flag: string): number {
   if (!/^\d+$/.test(raw)) throw usage(`--${flag} 값은 정수여야 합니다: ${raw}`, { flag, value: raw });
   return Number(raw);
 }
@@ -150,7 +186,7 @@ function requestFileOr(values: Values, flags: readonly string[]): unknown {
   return readRequestFile(path);
 }
 
-function required(values: Values, name: string): string {
+export function required(values: Values, name: string): string {
   const value = single(values, name);
   if (value === undefined) throw usage(`--${name}이(가) 필요합니다`, { flag: name });
   return value;
@@ -175,7 +211,31 @@ function versionOf(values: Values): { version?: { generation?: number; commits?:
   };
 }
 
+/** 생략하면 undefined다. 요청의 기본 형식(1)을 그대로 쓴다. */
+export function responseVersionFlag(values: Values): 1 | 2 | undefined {
+  const raw = single(values, 'response-version');
+  if (raw === undefined) return undefined;
+  if (raw === '1' || raw === '2') return Number(raw) as 1 | 2;
+  throw usage(`--response-version 값은 1 또는 2여야 합니다: ${raw}`, { flag: 'response-version', value: raw, supported: [1, 2] });
+}
+
+/**
+ * 옵션과 요청 파일이 서로 다른 형식을 고르면 어느 쪽도 고르지 않는다. 형식 1은 요청에 필드를 더하지 않는다.
+ * 기존 형식의 응답이 요청을 그대로 되돌려 주므로 필드를 더하면 출력 바이트가 바뀐다.
+ */
+function withResponseVersion(request: unknown, values: Values): unknown {
+  const flag = responseVersionFlag(values);
+  if (flag === undefined || typeof request !== 'object' || request === null || Array.isArray(request)) return request;
+  const declared = (request as Record<string, unknown>).responseVersion;
+  if (declared !== undefined && declared !== flag) throw usage('--response-version과 요청의 responseVersion이 다릅니다', { flag, request: declared });
+  return flag === 2 ? { ...request, responseVersion: 2 } : request;
+}
+
 export function searchRequestOf(values: Values): unknown {
+  return withResponseVersion(searchRequestFrom(values), values);
+}
+
+function searchRequestFrom(values: Values): unknown {
   const fromFile = requestFileOr(values, ['profile', 'project', 'allow-link', 'generation', 'commit', 'query', 'kind', 'status', 'phase', 'path', 'limit']);
   if (fromFile !== undefined) return fromFile;
 
@@ -200,6 +260,10 @@ export function searchRequestOf(values: Values): unknown {
 
 export function getRequestOf(values: Values): unknown {
   const fromFile = requestFileOr(values, ['id', 'profile', 'project', 'allow-link', 'generation', 'commit']);
-  if (fromFile !== undefined) return fromFile;
-  return { id: required(values, 'id'), profile: required(values, 'profile'), scope: scopeOf(values), ...versionOf(values) };
+  if (fromFile !== undefined) return withResponseVersion(fromFile, values);
+  return withResponseVersion({ id: required(values, 'id'), profile: required(values, 'profile'), scope: scopeOf(values), ...versionOf(values) }, values);
+}
+
+export function verifyRequestOf(values: Values): unknown {
+  return readRequestFile(required(values, 'request'));
 }

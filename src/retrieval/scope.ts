@@ -2,8 +2,9 @@ import type { DatabaseSync } from 'node:sqlite';
 import { z } from 'zod';
 import { KnowledgeError } from '../errors.js';
 import type { BasisRecord, Conflict, LinkRecord } from '../indexing/resolve.js';
+import { SCHEMA_VERSION } from '../indexing/schema.js';
 import { openForRead, type Store } from '../indexing/store.js';
-import { DEFAULT_LINK_KINDS, KINDS, type AppliesTo, type BaseStatus, type EffectiveStatus, type Kind, type Unit } from '../model.js';
+import { DEFAULT_LINK_KINDS, KINDS, type AppliesTo, type BaseStatus, type EffectiveStatus, type HttpOperation, type Kind, type StatusDeclaration, type Unit } from '../model.js';
 import type { ProfileConfig } from '../profiles/config.js';
 import type { SkippedPath } from '../sources/collect.js';
 import { compareStrings, sortedUnique } from '../util/compare.js';
@@ -16,13 +17,26 @@ function rejectPrototypeCommitKey(raw: unknown): unknown {
   return raw;
 }
 
-export const versionSchema = z.preprocess(
+const versionFields = {
+  generation: z.number().int().positive().optional(),
+  commits: z.record(z.string().min(1), z.string().regex(/^[0-9a-fA-F]{7,64}$/)).optional(),
+};
+
+export const versionSchema = z.preprocess(rejectPrototypeCommitKey, z.strictObject(versionFields));
+
+/** 응답 형식 2의 세대 지정. exact는 지정한 세대만 쓰고, indexId는 다른 데이터베이스의 세대 번호를 쓰지 않게 한다. */
+export const versionSchemaV2 = z.preprocess(
   rejectPrototypeCommitKey,
-  z.strictObject({
-    generation: z.number().int().positive().optional(),
-    commits: z.record(z.string().min(1), z.string().regex(/^[0-9a-fA-F]{7,64}$/)).optional(),
-  }),
+  z
+    .strictObject({ ...versionFields, indexId: z.string().regex(/^[0-9a-f]{32}$/).optional(), exact: z.boolean().optional() })
+    .refine((version) => !version.exact || version.generation !== undefined, { message: 'exact requires generation', path: ['exact'] }),
 );
+
+/** 내부 세대 선택 조건. 기존 형식 요청에는 indexId와 exact가 없다. */
+export interface VersionSelector extends VersionRequest {
+  indexId?: string;
+  exact?: boolean;
+}
 
 const scopeSchema = z.strictObject({
   projects: z.array(z.string().min(1)).min(1),
@@ -47,6 +61,8 @@ export interface EffectiveScope extends RequestedScope {
   kinds: Kind[] | null;
   statuses: EffectiveStatus[];
   statusesExplicit: boolean;
+  /** 응답 형식 2의 문서 필터. 적힌 프로젝트의 항목만 그 문서(`/`로 끝나면 그 디렉터리 아래)로 줄인다. 범위가 아니라 필터다. */
+  documents?: { project: string; path: string }[] | null;
 }
 
 type SqlParam = string | number;
@@ -62,6 +78,9 @@ interface GenerationSource {
   commit: string;
   requestedRef: string;
   skipped: SkippedPath[];
+  /** 스키마 2 이전에 게시한 세대는 null이다. */
+  refOrigin: 'config' | 'override' | null;
+  configSha256: string | null;
 }
 
 export interface SelectedGeneration {
@@ -72,6 +91,13 @@ export interface SelectedGeneration {
   tokenizerVersion: string;
   resolverVersion: string;
   sources: GenerationSource[];
+  fingerprint: string;
+  activated: boolean;
+  /** 아직 활성화한 세대가 없으면 null이다. */
+  activeGeneration: number | null;
+  /** 스키마 2 이전 데이터베이스는 null이다. */
+  indexId: string | null;
+  schemaVersion: number;
 }
 
 export interface ScopedItem {
@@ -102,20 +128,52 @@ export interface ScopedItem {
   blobSha: string;
   documentSha256: string;
   firstGeneration: number;
+  pk: number;
+  /** 원본이 필수로 지정한 항목. 필수 묶음에 들어가는지와는 다르다(관찰·폐기 상태는 묶음에서 빠진다). */
+  designatedMandatory: boolean;
+  /** 스키마 2 이전에 색인한 항목은 null이다. */
+  tokenCount: number | null;
+  operations: HttpOperation[] | null;
+  declaration: StatusDeclaration | null;
 }
 
-type ItemRow = Omit<ScopedItem, 'headingPath' | 'aliases' | 'appliesTo' | 'basis' | 'conflicts' | 'links'> & { headingPath: string; aliases: string; appliesTo: string; basis: string; conflicts: string; links: string };
+type ItemRow = Omit<ScopedItem, 'headingPath' | 'aliases' | 'appliesTo' | 'basis' | 'conflicts' | 'links' | 'designatedMandatory' | 'operations' | 'declaration'> & {
+  headingPath: string;
+  aliases: string;
+  appliesTo: string;
+  basis: string;
+  conflicts: string;
+  links: string;
+  designatedMandatory: number;
+  operations: string | null;
+  declaration: string | null;
+};
 
-const ITEM_SOURCE = 'generation_items g JOIN items i ON i.item_pk = g.item_pk JOIN documents d ON d.document_pk = i.document_pk';
+export const ITEM_SOURCE = 'generation_items g JOIN items i ON i.item_pk = g.item_pk JOIN documents d ON d.document_pk = i.document_pk';
+const V2_ITEM_COLUMNS = ', i.token_count AS tokenCount, i.operations_json AS operations, i.declaration_json AS declaration';
+const V1_ITEM_COLUMNS = ', NULL AS tokenCount, NULL AS operations, NULL AS declaration';
 const ITEM_COLUMNS = `
   i.item_id AS id, i.key AS key, i.anchor AS anchor, i.unit AS unit, i.kind AS kind, i.title AS title, i.heading_path_json AS headingPath,
   i.content AS content, i.content_sha256 AS itemSha256, i.start_line AS startLine, i.end_line AS endLine, i.ordinal AS ordinal,
   i.declared_status AS declaredStatus, i.aliases_json AS aliases, i.applies_to_json AS appliesTo,
   g.base_status AS baseStatus, g.effective_status AS effectiveStatus, g.status_reason AS statusReason, g.basis_json AS basis, g.conflicts_json AS conflicts, g.links_json AS links,
-  d.source_id AS sourceId, d.project_id AS projectId, d.path AS path, d.blob_sha AS blobSha, d.content_sha256 AS documentSha256, d.first_generation AS firstGeneration`;
+  d.source_id AS sourceId, d.project_id AS projectId, d.path AS path, d.blob_sha AS blobSha, d.content_sha256 AS documentSha256, d.first_generation AS firstGeneration,
+  i.item_pk AS pk, i.mandatory AS designatedMandatory`;
 
-function placeholders(values: readonly unknown[]): string {
+export function placeholders(values: readonly unknown[]): string {
   return values.map(() => '?').join(', ');
+}
+
+const schemaVersions = new WeakMap<DatabaseSync, number>();
+
+/** 읽기 연결은 옛 스키마일 수 있으므로 새 열을 읽기 전에 버전을 본다. */
+export function schemaVersionOf(db: DatabaseSync): number {
+  let version = schemaVersions.get(db);
+  if (version === undefined) {
+    version = (db.prepare('PRAGMA user_version').get() as unknown as { user_version: number }).user_version;
+    schemaVersions.set(db, version);
+  }
+  return version;
 }
 
 function invalidScope(message: string, detail: Record<string, unknown>): KnowledgeError {
@@ -166,6 +224,17 @@ export function sharedPredicate(scope: EffectiveScope, statuses: readonly Effect
     clauses.push(`g.effective_status IN (${placeholders(statuses)})`);
     params.push(...statuses);
   }
+  if (scope.documents && scope.documents.length > 0) {
+    const byProject = Map.groupBy(scope.documents, (document) => document.project);
+    const projects = [...byProject.keys()];
+    const arms = [`d.project_id NOT IN (${placeholders(projects)})`];
+    params.push(...projects);
+    for (const [project, documents] of byProject) {
+      arms.push(`(d.project_id = ? AND (${documents.map((document) => (document.path.endsWith('/') ? 'substr(d.path, 1, length(?)) = ?' : 'd.path = ?')).join(' OR ')}))`);
+      params.push(project, ...documents.flatMap((document) => (document.path.endsWith('/') ? [document.path, document.path] : [document.path])));
+    }
+    clauses.push(`(${arms.join(' OR ')})`);
+  }
   return { sql: clauses.join(' AND '), params };
 }
 
@@ -173,12 +242,13 @@ export function primaryProjects(scope: EffectiveScope): SqlPredicate {
   return { sql: `d.project_id IN (${placeholders(scope.projects)})`, params: [...scope.projects] };
 }
 
-function all<T>(db: DatabaseSync, sql: string, params: readonly SqlParam[] = []): T[] {
+export function all<T>(db: DatabaseSync, sql: string, params: readonly SqlParam[] = []): T[] {
   return db.prepare(sql).all(...params) as unknown as T[];
 }
 
 export function selectItems(db: DatabaseSync, predicate: SqlPredicate, condition: SqlPredicate): ScopedItem[] {
-  return all<ItemRow>(db, `SELECT ${ITEM_COLUMNS} FROM ${ITEM_SOURCE} WHERE ${predicate.sql} AND ${condition.sql}`, [...predicate.params, ...condition.params]).map((row) => ({
+  const columns = ITEM_COLUMNS + (schemaVersionOf(db) >= 2 ? V2_ITEM_COLUMNS : V1_ITEM_COLUMNS);
+  return all<ItemRow>(db, `SELECT ${columns} FROM ${ITEM_SOURCE} WHERE ${predicate.sql} AND ${condition.sql}`, [...predicate.params, ...condition.params]).map((row) => ({
     ...row,
     headingPath: JSON.parse(row.headingPath) as string[],
     aliases: JSON.parse(row.aliases) as string[],
@@ -186,6 +256,9 @@ export function selectItems(db: DatabaseSync, predicate: SqlPredicate, condition
     basis: JSON.parse(row.basis) as BasisRecord,
     conflicts: JSON.parse(row.conflicts) as Conflict[],
     links: JSON.parse(row.links) as LinkRecord[],
+    designatedMandatory: row.designatedMandatory === 1,
+    operations: row.operations === null ? null : (JSON.parse(row.operations) as HttpOperation[]),
+    declaration: row.declaration === null ? null : (JSON.parse(row.declaration) as StatusDeclaration),
   }));
 }
 
@@ -224,7 +297,8 @@ function assertCommitKeys(db: DatabaseSync, context: RetrievalContext, projects:
 }
 
 function sourcesOf(db: DatabaseSync, generation: number): GenerationSource[] {
-  return all<Omit<GenerationSource, 'skipped'> & { skipped: string }>(db, 'SELECT source_id AS sourceId, project_id AS projectId, commit_sha AS "commit", requested_ref AS requestedRef, skipped_json AS skipped FROM generation_sources WHERE generation = ? ORDER BY source_id', [generation]).map((row) => ({
+  const extra = schemaVersionOf(db) >= 2 ? 'ref_origin AS refOrigin, config_sha256 AS configSha256' : 'NULL AS refOrigin, NULL AS configSha256';
+  return all<Omit<GenerationSource, 'skipped'> & { skipped: string }>(db, `SELECT source_id AS sourceId, project_id AS projectId, commit_sha AS "commit", requested_ref AS requestedRef, skipped_json AS skipped, ${extra} FROM generation_sources WHERE generation = ? ORDER BY source_id`, [generation]).map((row) => ({
     ...row,
     skipped: JSON.parse(row.skipped) as SkippedPath[],
   }));
@@ -234,24 +308,37 @@ function indexMissing(reason: string, message: string, detail: Record<string, un
   return new KnowledgeError('index-missing', message, { reason, ...detail });
 }
 
-function selectGeneration(db: DatabaseSync, active: number, version: VersionRequest): SelectedGeneration {
+/** active가 null이면 아직 활성화한 세대가 없다. 그때는 번호로 지정한 세대만 고를 수 있다. */
+function selectGeneration(db: DatabaseSync, active: number | null, version: VersionSelector): SelectedGeneration {
   const commits = Object.entries(version.commits ?? {});
   const ceiling = version.generation ?? Number.MAX_SAFE_INTEGER;
-  const retained = all<{ generation: number }>(db, 'SELECT generation FROM generations ORDER BY generation DESC').map((row) => row.generation);
-  if (version.generation !== undefined && !retained.includes(version.generation)) throw indexMissing('generation-not-found', `색인 세대를 찾을 수 없습니다: ${version.generation}`, { generation: version.generation });
+  const schemaVersion = schemaVersionOf(db);
+  const activatedColumn = schemaVersion >= 2 ? 'activated' : '1';
+  const retained = all<{ generation: number; activated: number }>(db, `SELECT generation, ${activatedColumn} AS activated FROM generations ORDER BY generation DESC`);
+  if (version.generation !== undefined && !retained.some((row) => row.generation === version.generation)) throw indexMissing('generation-not-found', `색인 세대를 찾을 수 없습니다: ${version.generation}`, { generation: version.generation });
+  const matchesCommits = (candidate: number): boolean => {
+    const sources = sourcesOf(db, candidate);
+    return commits.every(([sourceId, sha]) => sources.find((source) => source.sourceId === sourceId)?.commit.startsWith(sha.toLowerCase()));
+  };
 
-  let generation = version.generation ?? active;
-  if (commits.length > 0) {
-    const match = retained.filter((candidate) => candidate <= ceiling).find((candidate) => {
-      const sources = sourcesOf(db, candidate);
-      return commits.every(([sourceId, sha]) => sources.find((source) => source.sourceId === sourceId)?.commit.startsWith(sha.toLowerCase()));
-    });
+  let generation = (version.generation ?? active)!;
+  if (commits.length > 0 && version.exact) {
+    if (!matchesCommits(generation)) throw indexMissing('commit-not-in-generation', '지정한 세대에 요청한 커밋이 없습니다', { generation, commits: Object.fromEntries(commits) });
+  } else if (commits.length > 0) {
+    // 활성화하지 않은 세대(작업 브랜치 색인 등)는 세대 번호로 지정했을 때만 고른다. 커밋만으로 고르면 다른 원본이 기준과 다른 세대가 섞인다
+    const eligible = retained.filter((row) => row.generation <= ceiling && (row.activated === 1 || row.generation === version.generation));
+    const match = eligible.find((row) => matchesCommits(row.generation))?.generation;
     if (match === undefined) throw indexMissing('commit-not-indexed', '요청한 커밋을 포함한 색인 세대가 없습니다', { commits: Object.fromEntries(commits) });
     generation = match;
   }
 
-  const row = all<Omit<SelectedGeneration, 'generation' | 'sources'>>(db, 'SELECT published_at AS publishedAt, parser_version AS parserVersion, chunker_version AS chunkerVersion, tokenizer_version AS tokenizerVersion, resolver_version AS resolverVersion FROM generations WHERE generation = ?', [generation])[0]!;
-  return { generation, ...row, sources: sourcesOf(db, generation) };
+  const row = all<Omit<SelectedGeneration, 'generation' | 'sources' | 'activated' | 'activeGeneration' | 'indexId' | 'schemaVersion'> & { activated: number }>(
+    db,
+    `SELECT published_at AS publishedAt, parser_version AS parserVersion, chunker_version AS chunkerVersion, tokenizer_version AS tokenizerVersion, resolver_version AS resolverVersion, fingerprint, ${activatedColumn} AS activated FROM generations WHERE generation = ?`,
+    [generation],
+  )[0]!;
+  const indexId = schemaVersion >= 2 ? (all<{ value: string }>(db, "SELECT value FROM meta WHERE key = 'index_id'")[0]?.value ?? null) : null;
+  return { generation, ...row, activated: row.activated === 1, activeGeneration: active, indexId, schemaVersion, sources: sourcesOf(db, generation) };
 }
 
 function assertProjectsIndexed(context: RetrievalContext, projects: readonly string[], selected: SelectedGeneration): void {
@@ -265,8 +352,17 @@ function assertProjectsIndexed(context: RetrievalContext, projects: readonly str
   }
 }
 
-/** 저장소 열기, 커밋 키, 세대 선택, 프로젝트 등록을 차례로 검증한 뒤 한 읽기 트랜잭션 안에서 fn을 실행한다. */
-export function withGeneration<T>(context: RetrievalContext, scope: RequestedScope, version: VersionRequest, fn: (db: DatabaseSync, selected: SelectedGeneration) => T): T {
+/**
+ * 저장소 열기, 커밋 키, 세대 선택, 프로젝트 등록을 차례로 검증한 뒤 한 읽기 트랜잭션 안에서 fn을 실행한다.
+ * requireCurrentSchema는 응답 형식 2처럼 새 열과 테이블이 필요한 호출에서 켠다.
+ */
+export function withGeneration<T>(
+  context: RetrievalContext,
+  scope: RequestedScope,
+  version: VersionSelector,
+  fn: (db: DatabaseSync, selected: SelectedGeneration) => T,
+  options: { requireCurrentSchema?: boolean } = {},
+): T {
   const projects = requestedProjects(scope);
   let store: Store;
   try {
@@ -275,11 +371,19 @@ export function withGeneration<T>(context: RetrievalContext, scope: RequestedSco
     throw scopeErrorOr(context, projects, error);
   }
   try {
+    if (options.requireCurrentSchema && store.schemaVersion < SCHEMA_VERSION) {
+      throw indexMissing('schema-upgrade-required', '이 요청에는 새 색인 스키마가 필요합니다. index를 한 번 실행해 주십시오', { version: store.schemaVersion, required: SCHEMA_VERSION });
+    }
     return store.read((db) => {
       const active = all<{ value: string }>(db, "SELECT value FROM meta WHERE key = 'active_generation'")[0];
-      if (active === undefined) throw scopeErrorOr(context, projects, indexMissing('no-generation', '게시된 색인이 없습니다'));
+      // --no-activate로만 게시한 DB에도 번호로 지정한 세대는 읽을 수 있어야 한다. 지정하지 않으면 대신 고를 세대가 없다
+      if (active === undefined && version.generation === undefined) throw scopeErrorOr(context, projects, indexMissing('no-generation', '게시된 색인이 없습니다'));
+      if (version.indexId !== undefined) {
+        const actual = all<{ value: string }>(db, "SELECT value FROM meta WHERE key = 'index_id'")[0]?.value ?? null;
+        if (actual !== version.indexId) throw indexMissing('index-id-mismatch', '요청한 색인 식별자와 데이터베이스가 다릅니다', { expected: version.indexId, actual });
+      }
       if (version.commits) assertCommitKeys(db, context, projects, version.commits);
-      const selected = selectGeneration(db, Number(active.value), version);
+      const selected = selectGeneration(db, active === undefined ? null : Number(active.value), version);
       assertProjectsIndexed(context, projects, selected);
       return fn(db, selected);
     });

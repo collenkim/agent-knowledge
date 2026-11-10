@@ -1,5 +1,5 @@
-import { isPhase, normalizeStatus, type BaseStatus, type BasisRef, type Phase, type Relation, type Relations } from '../model.js';
-import { sortedUnique } from '../util/compare.js';
+import { isPhase, normalizeStatus, type BaseStatus, type BasisRef, type HttpOperation, type InformalSyntax, type Phase, type Relation, type Relations } from '../model.js';
+import { compareStrings, sortedUnique } from '../util/compare.js';
 import { normalizeRepoPath } from '../util/paths.js';
 
 // 표시 뒤 공백을 전부 먹은 뒤에만 이름이 시작해야 공백이 긴 줄에서 이차 시간이 되지 않는다
@@ -7,6 +7,12 @@ const FIELD_LINE = /^\s*[-*+]\s+(?=\S)([^:：`|\n]{1,16}?)\s*[:：]\s*(.*)$/;
 const EMPHASIS_MARK = /^(?:\*{1,3}|_{1,3})/;
 const INFORMAL_STATUS = /^\s*(?:\*{1,3}|_{1,3})?(?:상태|status)(?:\*{1,3}|_{1,3})?\s*[:：]\s*(.*)$/i;
 const TABLE_STATUS_NAME = /^(?:\*{1,3}|_{1,3})?(?:상태|status)(?:\*{1,3}|_{1,3})?$/i;
+const ORDERED_ITEM = /^\s*\d{1,9}[.)][ \t]+(.*)$/;
+const QUOTE_MARKERS = /^(?: {0,3}>[ \t]?)+/;
+const HTTP_METHOD = 'GET|HEAD|POST|PUT|PATCH|DELETE|OPTIONS|TRACE|CONNECT';
+const HTTP_OPERATION_TOKEN = new RegExp(`^(?:${HTTP_METHOD})(?:[ \\t]+|:)/[^\\s\`]*$`, 'i');
+const HTTP_OPERATION_IN_VALUE = new RegExp(`(?<![\\p{L}\\p{N}_])(${HTTP_METHOD})(?:[ \\t]+|:)(/[^\\s\`,·]*)`, 'giu');
+const OPERATION_TRAILER = /[.,;:)\]'"]+$/;
 const VALUE_TOKEN = /`([^`]+)`|([^\s,·`]+)/g;
 const BACKTICKED = /`([^`]+)`/g;
 const REFERENCE = /(?:[a-z0-9][a-z0-9._-]{0,63}:)?\b(?:BR|FEAT|FLOW|POL|CON|DEP)-[A-Za-z0-9_-]*[A-Za-z0-9]/g;
@@ -45,12 +51,21 @@ const TABLE_DELIMITER_CELL = /^\s*:?-+:?\s*$/;
 /** 비공식 표기가 여럿이면 가장 낮은 상태를 쓴다. 확정 계열은 올릴 수 없으므로 없다. */
 const DEMOTING_STATUSES: readonly BaseStatus[] = ['deprecated', 'unverified', 'observed_behavior'];
 
+export interface InformalStatus {
+  raw: string;
+  status: BaseStatus;
+  syntax: InformalSyntax;
+}
+
 export interface ParsedFields {
   statusRaw: string | null;
   /** 정식 필드가 아닌 표기 중 상태를 낮추는 값의 원문. 정식 상태가 없을 때만 쓴다. */
   informalStatusRaw: string | null;
   /** 상태 어휘로 읽히는 비공식 표기의 원문 전부. 진단에 쓴다. */
   informalStatusValues: string[];
+  /** 상태 어휘로 읽히는 비공식 표기와 그 문법. informalApplied는 informalStatusRaw로 고른 표기의 위치다. */
+  informalStatuses: InformalStatus[];
+  informalApplied: number | null;
   basisRefs: BasisRef[];
   mandatory: boolean;
   global: boolean;
@@ -60,10 +75,39 @@ export interface ParsedFields {
   aliases: string[];
   relations: Relations;
   kind: string | null;
+  operations: HttpOperation[];
 }
 
+/** `PATCH /auth/x`, `GET:/auth/x` 같은 토큰은 슬래시가 있어도 파일 경로가 아니다. */
+export function isHttpOperation(token: string): boolean {
+  return HTTP_OPERATION_TOKEN.test(token);
+}
+
+/** Windows 작성자의 `src\auth\`도 `src/auth/`와 같이 읽는다. 구분자 변환은 normalizeRepoPath가 한다. */
 function isPathLike(token: string): boolean {
-  return !URL_SCHEME.test(token) && (token.includes('/') || FILE_EXTENSION.test(token));
+  return !URL_SCHEME.test(token) && !isHttpOperation(token) && (token.includes('/') || token.includes('\\') || FILE_EXTENSION.test(token));
+}
+
+export function compareOperations(a: HttpOperation, b: HttpOperation): number {
+  return compareStrings(a.field, b.field) || compareStrings(a.method, b.method) || compareStrings(a.path, b.path);
+}
+
+/** 값 안의 HTTP 작업을 모두 뽑는다. 백틱 안팎을 가리지 않는다. */
+export function operationsOf(value: string, field: HttpOperation['field']): HttpOperation[] {
+  const found = new Map<string, HttpOperation>();
+  for (const match of value.normalize('NFC').matchAll(HTTP_OPERATION_IN_VALUE)) {
+    const path = match[2]!.replace(OPERATION_TRAILER, '');
+    if (path === '') continue;
+    const operation: HttpOperation = { method: match[1]!.toUpperCase() as HttpOperation['method'], path, field };
+    found.set(`${operation.method} ${operation.path}`, operation);
+  }
+  return [...found.values()];
+}
+
+export function mergeOperations(...lists: readonly HttpOperation[][]): HttpOperation[] {
+  const merged = new Map<string, HttpOperation>();
+  for (const operation of lists.flat()) merged.set(`${operation.field}\0${operation.method}\0${operation.path}`, operation);
+  return [...merged.values()].sort(compareOperations);
 }
 
 function valueTokens(value: string): string[] {
@@ -89,13 +133,34 @@ function withoutEmphasis(name: string, value: string): { name: string; value: st
   return { name, value };
 }
 
-function informalStatusValue(line: string): string | null {
+function plainOrTableStatus(line: string): { raw: string; syntax: 'plain' | 'table' } | null {
   const plain = INFORMAL_STATUS.exec(line);
-  if (plain) return stripEmphasisMarks(plain[1]!.trim());
+  if (plain) return { raw: stripEmphasisMarks(plain[1]!.trim()), syntax: 'plain' };
   const row = line.trim();
   if (!row.startsWith('|')) return null;
   const cells = row.slice(1, row.endsWith('|') ? -1 : undefined).split('|').map((cell) => cell.trim());
-  return cells.length === 2 && TABLE_STATUS_NAME.test(cells[0]!) ? stripEmphasisMarks(cells[1]!) : null;
+  return cells.length === 2 && TABLE_STATUS_NAME.test(cells[0]!) ? { raw: stripEmphasisMarks(cells[1]!), syntax: 'table' } : null;
+}
+
+/** 정식 필드가 아닌 상태 표기를 찾는다. 인용문 안은 다른 문서를 옮긴 것일 수 있어 문법을 따로 표시한다. */
+function informalStatusValue(line: string): { raw: string; syntax: InformalSyntax } | null {
+  const quote = QUOTE_MARKERS.exec(line);
+  if (quote) {
+    const inner = line.slice(quote[0].length);
+    const field = FIELD_LINE.exec(inner);
+    if (field) {
+      const { name, value } = withoutEmphasis(field[1]!.trim(), field[2]!.trim());
+      return SCALAR_FIELDS.get(name.replace(/\s/g, '').toLowerCase()) === 'status' ? { raw: value, syntax: 'quote' } : null;
+    }
+    const nested = informalStatusValue(inner);
+    return nested === null ? null : { raw: nested.raw, syntax: 'quote' };
+  }
+  const ordered = ORDERED_ITEM.exec(line);
+  if (ordered) {
+    const inner = INFORMAL_STATUS.exec(ordered[1]!);
+    return inner ? { raw: stripEmphasisMarks(inner[1]!.trim()), syntax: 'ordered-list' } : null;
+  }
+  return plainOrTableStatus(line);
 }
 
 function isTableDelimiter(line: string | undefined): boolean {
@@ -184,14 +249,15 @@ export function parseFields(lines: readonly string[]): ParsedFields {
   const scalars = new Map<ScalarField, string>();
   const relationValues = new Map<Relation, string>();
   const basisValues: string[] = [];
-  const informal: { raw: string; status: BaseStatus }[] = [];
+  const informal: InformalStatus[] = [];
+  const operations: HttpOperation[][] = [];
   for (const [index, line] of lines.entries()) {
     const match = FIELD_LINE.exec(line);
     if (!match) {
       // 구분 행 바로 위의 행은 이름·값 행이 아니라 표 머리글이다
-      const raw = isTableDelimiter(lines[index + 1]) ? null : informalStatusValue(line);
-      const status = raw === null ? null : normalizeStatus(raw);
-      if (status !== null) informal.push({ raw: raw!, status });
+      const found = isTableDelimiter(lines[index + 1]) ? null : informalStatusValue(line);
+      const status = found === null ? null : normalizeStatus(found.raw);
+      if (status !== null) informal.push({ raw: found!.raw, status, syntax: found!.syntax });
       continue;
     }
     const field = withoutEmphasis(match[1]!.trim(), match[2]!.trim());
@@ -199,6 +265,7 @@ export function parseFields(lines: readonly string[]): ParsedFields {
     const { value } = field;
     const scalar = SCALAR_FIELDS.get(name);
     const relation = RELATION_FIELDS.get(name);
+    if (scalar === 'scope' || relation === 'code' || relation === 'test') operations.push(operationsOf(value, scalar === 'scope' ? 'scope' : (relation as 'code' | 'test')));
     if (scalar === 'basis') basisValues.push(value);
     else if (scalar) scalars.set(scalar, scalars.has(scalar) ? `${scalars.get(scalar)} ${value}` : value);
     else if (relation) relationValues.set(relation, relationValues.has(relation) ? `${relationValues.get(relation)} ${value}` : value);
@@ -226,11 +293,15 @@ export function parseFields(lines: readonly string[]): ParsedFields {
   if (flowTokens.length > 0) relations.flow = sortedUnique([...(relations.flow ?? []), ...flowTokens]);
 
   const mandatory = scalars.get('mandatory');
-  const demoting = DEMOTING_STATUSES.flatMap((status) => informal.filter((entry) => entry.status === status))[0];
+  // 번호 목록과 인용문 안의 표기는 기록하고 진단만 한다. 번호 목록은 절차의 한 단계, 인용문은 옮겨 적은 글일 수 있어 상태를 낮추는 데도 쓰지 않는다
+  const applicable = informal.filter((entry) => entry.syntax === 'plain' || entry.syntax === 'table');
+  const demoting = DEMOTING_STATUSES.flatMap((status) => applicable.filter((entry) => entry.status === status))[0];
   return {
     statusRaw: scalars.get('status') ?? null,
     informalStatusRaw: demoting?.raw ?? null,
     informalStatusValues: informal.map((entry) => entry.raw),
+    informalStatuses: informal,
+    informalApplied: demoting === undefined ? null : informal.indexOf(demoting),
     basisRefs: parseBasisRefs(basisValues),
     mandatory: mandatory === '필수' || mandatory === 'mandatory',
     global,
@@ -240,5 +311,6 @@ export function parseFields(lines: readonly string[]): ParsedFields {
     aliases: sortedUnique((scalars.get('aliases') ?? '').replaceAll('`', '').split(/[,·]/).map((alias) => alias.trim()).filter(Boolean)),
     relations,
     kind: scalars.get('kind') ?? null,
+    operations: mergeOperations(...operations),
   };
 }

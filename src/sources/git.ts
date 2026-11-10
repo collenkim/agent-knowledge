@@ -184,7 +184,8 @@ export function isDirty(root: string, paths: readonly string[]): boolean {
   // 문서가 많으면 Windows 명령줄 길이 제한을 넘으므로 나눠서 묻는다
   let batch: string[] = [];
   let chars = 0;
-  const dirty = (): boolean => git(root, ['--literal-pathspecs', 'status', '--porcelain', '-z', '--', ...batch]).length > 0;
+  // status는 잠글 수 있으면 .git/index의 stat 정보를 갱신해 쓴다. 원본 저장소에 쓰지 않도록 선택적 잠금을 끈다
+  const dirty = (): boolean => git(root, ['--no-optional-locks', '--literal-pathspecs', 'status', '--porcelain', '-z', '--', ...batch]).length > 0;
   for (const path of paths) {
     if (chars + path.length > MAX_PATHSPEC_CHARS && batch.length > 0) {
       if (dirty()) return true;

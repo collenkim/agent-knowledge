@@ -1,9 +1,9 @@
 import { parse } from 'yaml';
 import { z } from 'zod';
-import { isKind, isPhase, RELATIONS, type AppliesTo, type BasisRef, type Diagnostic, type Kind, type Relations } from '../model.js';
+import { isKind, isPhase, RELATIONS, type AppliesTo, type BasisRef, type Diagnostic, type HttpOperation, type Kind, type Relations } from '../model.js';
 import { compareStrings } from '../util/compare.js';
 import { normalizeRepoPath } from '../util/paths.js';
-import { normalizeCodePath, parseBasisRefs } from './fields.js';
+import { isHttpOperation, mergeOperations, normalizeCodePath, operationsOf, parseBasisRefs } from './fields.js';
 
 const stringList = z.union([z.string(), z.array(z.string())]).transform((value) => (Array.isArray(value) ? value : [value]));
 
@@ -37,6 +37,7 @@ export interface DocumentMeta {
   appliesTo: AppliesTo;
   relations: Relations;
   aliases: string[];
+  operations: HttpOperation[];
 }
 
 const EMPTY_META: DocumentMeta = {
@@ -49,6 +50,7 @@ const EMPTY_META: DocumentMeta = {
   appliesTo: { global: false, paths: [], phases: [], conditions: null },
   relations: {},
   aliases: [],
+  operations: [],
 };
 
 interface ParsedFrontmatter {
@@ -108,14 +110,21 @@ export function parseFrontmatter(text: string | null): ParsedFrontmatter {
   }
 
   const relations: Relations = {};
+  const operations: HttpOperation[][] = [];
   for (const relation of RELATIONS) {
     const values = data.relations?.[relation];
     if (!values) continue;
+    if (relation === 'code' || relation === 'test') operations.push(values.flatMap((value) => operationsOf(value, relation)));
     const targets = relation === 'code' || relation === 'test' ? values.flatMap((value) => normalizeCodePath(value) ?? []) : values;
     if (targets.length > 0) relations[relation] = [...new Set(targets)].sort(compareStrings);
   }
 
   const applies = data.applies_to;
+  // `GET:/auth/x` 같은 HTTP 작업은 적용 경로가 아니라 적용 조건이다
+  // 항목 필드처럼 백틱으로 감싼 작업(`POST /a`)도 작업으로 본다. 경로 값의 백틱 처리는 이전 그대로다
+  const isOperation = (value: string): boolean => isHttpOperation(value.replaceAll('`', '').trim());
+  const scopeOperations = (applies?.paths ?? []).filter(isOperation);
+  operations.push(scopeOperations.flatMap((value) => operationsOf(value, 'scope')));
   return {
     meta: {
       id: data.id ?? null,
@@ -126,12 +135,13 @@ export function parseFrontmatter(text: string | null): ParsedFrontmatter {
       mandatory: data.mandatory ?? false,
       appliesTo: {
         global: applies?.global ?? false,
-        paths: (applies?.paths ?? []).flatMap((path) => normalizeRepoPath(path) ?? []),
+        paths: (applies?.paths ?? []).flatMap((path) => (isOperation(path) ? [] : (normalizeRepoPath(path) ?? []))),
         phases: (applies?.phases ?? []).filter(isPhase),
-        conditions: applies?.conditions?.join(' ') ?? null,
+        conditions: scopeOperations.length === 0 ? (applies?.conditions?.join(' ') ?? null) : [...(applies?.conditions ?? []), ...scopeOperations].join(' '),
       },
       relations,
       aliases: data.aliases ?? [],
+      operations: mergeOperations(...operations),
     },
     diagnostics,
   };

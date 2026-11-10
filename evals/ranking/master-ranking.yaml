@@ -1,0 +1,81 @@
+# master 프로필 순위 평가 묶음이다. 기존 평가(evals/master)와 따로 돌며 기본 `npm run eval`에는 들어가지 않는다.
+# 정답은 evals/fixtures/ranking-workspace의 테스트용 자료를 보고 적은 잠정 정답이다. 사람이 확인하기 전까지 provisional로 둔다.
+schemaVersion: 2
+suite: master-ranking
+profile: master
+corpus: synthetic
+fixture: true
+judgments: provisional
+workspace: ../fixtures/ranking-workspace
+defaults:
+  request:
+    scope: {projects: [rank-auth, rank-billing]}
+cases:
+  - id: RM-01-reset-token-expiry
+    request: {query: 비밀번호 재설정 토큰 만료 시간}
+    relevant:
+      - {id: 'rank-auth:docs/auth-policies.md#AUTH-POL-001', grade: 3}
+      - {id: 'rank-auth:docs/api-catalog.md#API-AUTH-01', grade: 1, required: false}
+    expectKinds: [policy]
+
+  # 같은 정답을 ID와 위치로 두 번 적었다. 한 정답으로 합쳐 세야 한다
+  - id: RM-02-login-lock-dedupe
+    request: {query: 로그인 연속 실패 계정 잠금}
+    relevant:
+      - {id: 'rank-auth:docs/auth-policies.md#AUTH-POL-002'}
+      - {location: {sourceId: rank-auth, path: docs/auth-policies.md, startLine: 19, endLine: 23}}
+
+  - id: RM-03-refresh-rotation-long-section
+    request: {query: 리프레시 토큰 회전 재사용 감지, scope: {projects: [rank-auth]}}
+    relevant:
+      - {id: 'rank-auth:docs/token-guide.md#토큰-수명-주기'}
+
+  - id: RM-04-renewal-retry
+    request: {query: 구독 갱신 결제 실패 재시도}
+    relevant:
+      - {id: 'rank-billing:docs/billing-rules.md#BIL-005'}
+
+  - id: RM-05-refund-deadline
+    request: {query: 환불 처리 기한}
+    relevant:
+      - {id: 'rank-billing:docs/billing-rules.md#BIL-004'}
+
+  - id: RM-06-invoice-multi
+    request: {query: 청구서 발행 재발행}
+    relevant:
+      - {id: 'rank-billing:docs/billing-rules.md#BIL-002'}
+      - {id: 'rank-billing:docs/billing-rules.md#BIL-003'}
+    expectKinds: [business-rule]
+
+  - id: RM-07-settlement-failure-long-section
+    request: {query: 정산 배치 실패 알림 재처리}
+    relevant:
+      - {id: 'rank-billing:docs/billing-architecture.md#정산-배치-구성'}
+
+  # 두 프로젝트에 걸친 어휘다. 한 프로젝트가 상위를 채우는지 composition으로 본다
+  - id: RM-08-token-expiry-cross-project
+    request: {query: 토큰 만료}
+    relevant:
+      - {id: 'rank-auth:docs/auth-policies.md#AUTH-POL-001'}
+      - {id: 'rank-auth:docs/token-guide.md#토큰-수명-주기'}
+      - {id: 'rank-billing:docs/billing-rules.md#BIL-001'}
+    expectKinds: [policy, reference, business-rule]
+
+  - id: RM-09-http-operation
+    request: {query: PATCH /auth/password 비밀번호 변경, scope: {projects: [rank-auth]}}
+    relevant:
+      - {id: 'rank-auth:docs/api-catalog.md#API-AUTH-01'}
+      - {id: 'rank-auth:docs/auth-policies.md#AUTH-POL-001'}
+
+  - id: RM-10-payment-token-term
+    request: {query: 결제 수단 토큰, scope: {projects: [rank-billing]}}
+    relevant:
+      - {id: 'rank-billing:docs/glossary.md#결제-수단-토큰'}
+      - {id: 'rank-billing:docs/billing-rules.md#BIL-001'}
+
+  # 본문 어휘가 겹치지 않는 질의다. 직접 순위로는 못 찾고 필수 지정으로만 문맥에 들어온다
+  - id: RM-11-mandatory-only
+    request: {query: 무차별 대입 방어, scope: {projects: [rank-auth]}}
+    relevant:
+      - {id: 'rank-auth:docs/auth-policies.md#AUTH-POL-002'}
+    note: 필수 자료가 문맥 포함률을 부풀리는지 보는 사례다. 직접 재현율은 0이어야 정상이다.

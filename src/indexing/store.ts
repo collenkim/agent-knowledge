@@ -2,7 +2,7 @@ import { existsSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { KnowledgeError } from '../errors.js';
-import { MIGRATIONS, REQUIRED_TABLES, SCHEMA_VERSION } from './schema.js';
+import { MIGRATIONS, MIN_READABLE_SCHEMA, requiredTablesAt, SCHEMA_VERSION } from './schema.js';
 
 const BUSY_TIMEOUT = 'PRAGMA busy_timeout=5000';
 // BUSY, LOCKED, READONLY, IOERR, CORRUPT, FULL, CANTOPEN, NOTADB
@@ -33,10 +33,10 @@ export function classifySchema(version: number, objectCount: number, latest: num
 }
 
 /** user_version은 다른 프로그램도 쓸 수 있고 색인이 손상되어도 남으므로 버전만으로는 이 프로젝트의 색인인지 알 수 없다. */
-function hasRequiredTables(db: DatabaseSync): boolean {
+function hasRequiredTables(db: DatabaseSync, version: number): boolean {
   const rows = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all() as unknown as { name: string }[];
   const tables = new Set(rows.map((row) => row.name));
-  return REQUIRED_TABLES.every((table) => tables.has(table));
+  return requiredTablesAt(version).every((table) => tables.has(table));
 }
 
 function schemaState(db: DatabaseSync): { state: SchemaState; version: number } {
@@ -44,7 +44,8 @@ function schemaState(db: DatabaseSync): { state: SchemaState; version: number } 
   const { objects } = db.prepare('SELECT count(*) AS objects FROM sqlite_master').get() as unknown as { objects: number };
   const state = classifySchema(version, objects);
   if (state === 'newer') throw new KnowledgeError('store-unavailable', '이 버전이 지원하지 않는 색인 스키마입니다', { reason: 'unsupported-schema', version });
-  if (state === 'foreign' || (state === 'current' && !hasRequiredTables(db))) throw new KnowledgeError('store-unavailable', '이 프로젝트의 색인이 아닌 데이터베이스입니다', { reason: 'unknown-database' });
+  // 옛 버전 번호도 남의 DB나 손상된 색인에 남을 수 있다. 확인하지 않으면 index가 저널 모드를 바꾸고 마이그레이션을 시도한다
+  if (state === 'foreign' || ((state === 'current' || state === 'older') && !hasRequiredTables(db, version))) throw new KnowledgeError('store-unavailable', '이 프로젝트의 색인이 아닌 데이터베이스입니다', { reason: 'unknown-database' });
   return { state, version };
 }
 
@@ -64,9 +65,12 @@ function migrate(db: DatabaseSync): void {
 
 export class Store {
   readonly db: DatabaseSync;
+  /** 연결한 데이터베이스의 스키마 버전. 쓰기 연결은 항상 최신이고, 읽기 연결은 옛 버전일 수 있다. */
+  readonly schemaVersion: number;
 
-  constructor(db: DatabaseSync) {
+  constructor(db: DatabaseSync, schemaVersion: number = SCHEMA_VERSION) {
     this.db = db;
+    this.schemaVersion = schemaVersion;
   }
 
   /** 여러 조회가 같은 스냅샷을 보도록 한 트랜잭션으로 묶는다. */
@@ -87,12 +91,12 @@ export class Store {
 }
 
 /** 실패하면 연결을 남기지 않는다. Windows에서는 열린 연결이 파일 삭제를 막는다. */
-function open(path: string, readOnly: boolean, prepare: (db: DatabaseSync) => void): Store {
+function open(path: string, readOnly: boolean, prepare: (db: DatabaseSync) => number): Store {
   return guardStore(() => {
     const db = new DatabaseSync(path, { readOnly });
     try {
-      prepare(db);
-      return new Store(db);
+      const version = prepare(db);
+      return new Store(db, version);
     } catch (error) {
       db.close();
       throw error;
@@ -106,7 +110,27 @@ export function openForRead(path: string): Store {
     db.exec(BUSY_TIMEOUT);
     const { state, version } = schemaState(db);
     if (state === 'empty') throw new KnowledgeError('index-missing', '게시된 색인이 없습니다', { reason: 'no-generation' });
-    if (state === 'older') throw new KnowledgeError('index-missing', '색인 스키마가 오래되어 다시 색인해야 합니다', { reason: 'schema-mismatch', version });
+    // 업그레이드 직후에도 기존 소비자가 멈추지 않도록, 아는 옛 스키마는 읽기 전용으로 기존 형식 요청에 쓴다
+    if (state === 'older' && version < MIN_READABLE_SCHEMA) {
+      throw new KnowledgeError('index-missing', '색인 스키마가 오래되어 다시 색인해야 합니다', { reason: 'schema-mismatch', version });
+    }
+    return version;
+  });
+}
+
+/**
+ * 이미 있는 최신 스키마 색인에 쓴다. 임대처럼 색인을 만들지 않는 쓰기가 옛 DB를 몰래 마이그레이션하지 않게 한다.
+ * 마이그레이션은 되돌릴 수 없으므로 index 명령에서만 일어나야 한다.
+ */
+export function openExistingForWrite(path: string): Store {
+  if (!existsSync(path)) throw new KnowledgeError('index-missing', '색인 데이터베이스가 없습니다', { reason: 'no-database', path });
+  return open(path, false, (db) => {
+    db.exec(BUSY_TIMEOUT);
+    const { state, version } = schemaState(db);
+    if (state === 'empty') throw new KnowledgeError('index-missing', '게시된 색인이 없습니다', { reason: 'no-generation' });
+    if (state === 'older') throw new KnowledgeError('index-missing', '이 요청에는 새 색인 스키마가 필요합니다. index를 한 번 실행해 주십시오', { reason: 'schema-upgrade-required', version, required: SCHEMA_VERSION });
+    db.exec('PRAGMA foreign_keys=ON');
+    return version;
   });
 }
 
@@ -124,5 +148,6 @@ export function openForWrite(path: string): Store {
     db.exec('PRAGMA journal_mode=WAL');
     db.exec('PRAGMA foreign_keys=ON');
     migrate(db);
+    return SCHEMA_VERSION;
   });
 }

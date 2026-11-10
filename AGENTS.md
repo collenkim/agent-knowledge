@@ -13,14 +13,14 @@
 
 | 코드 | 문서 |
 |---|---|
-| `src/model.ts`, `src/parsing/`, `src/indexing/resolve.ts` | [docs/knowledge-model.md](docs/knowledge-model.md) |
+| `src/model.ts`, `src/parsing/`(`segments.ts` 포함), `src/indexing/resolve.ts` | [docs/knowledge-model.md](docs/knowledge-model.md) |
 | `src/sources/`, `config/sources.example.yaml` | [docs/knowledge-model.md](docs/knowledge-model.md) |
-| `src/indexing/indexer.ts`, `src/indexing/store.ts`, `src/indexing/schema.ts` | [docs/knowledge-model.md](docs/knowledge-model.md) |
-| `src/retrieval/`, `src/profiles/`, `config/retrieval.yaml` | [docs/retrieval.md](docs/retrieval.md) |
-| `src/cli/`, `src/errors.ts`, `src/index.ts` | [docs/retrieval.md](docs/retrieval.md) |
-| `src/evaluation/`, `evals/` | [docs/retrieval.md](docs/retrieval.md) |
+| `src/indexing/indexer.ts`, `src/indexing/store.ts`, `src/indexing/schema.ts`, `src/indexing/leases.ts` | [docs/knowledge-model.md](docs/knowledge-model.md) |
+| `src/retrieval/`(`units.ts`, `compose-v2.ts`, `verify.ts`, `capabilities.ts` 포함), `src/profiles/`, `config/retrieval.yaml` | [docs/retrieval.md](docs/retrieval.md) |
+| `src/cli/`, `src/errors.ts`, `src/index.ts`, `src/util/package-info.ts` | [docs/retrieval.md](docs/retrieval.md) |
+| `src/evaluation/`(`ranking.ts`, `ranking-suite.ts` 포함), `evals/` | [docs/retrieval.md](docs/retrieval.md) |
 | `src/adapters/`, `compose.yaml` | [docs/scope.md](docs/scope.md) |
-| 없음(다른 저장소와의 경계) | [docs/integration.md](docs/integration.md) |
+| 응답 형식 2의 참조·재현 식별값·세대 고정·임대의 소비자 계약 | [docs/integration.md](docs/integration.md) |
 
 코드를 바꾸면 대응 문서를 같은 변경에서 고친다. 사실 하나는 문서 한 곳에만 적고 다른 곳에서는 링크한다. `tests/docs.test.ts`는 구현된 CLI 명령이나 `ErrorCode`가 [docs/retrieval.md](docs/retrieval.md)에 없을 때, 표의 종료 코드 값이 다를 때, 상대 링크의 대상 파일이 없을 때, 문서 진단 코드·건너뛴 이유·충돌 사유가 [docs/knowledge-model.md](docs/knowledge-model.md)에 없을 때 실패한다. 문서에 남은 오래된 명령이나 코드, 링크의 앵커는 검사하지 않으므로 직접 확인한다.
 
@@ -55,7 +55,9 @@ npm run eval
 - 원본 규칙의 `status`, `basis`는 특정 문서에 대한 운영자의 진술이다. 예시 설정에 값으로 넣지 않는다.
 - `unverified`, `deprecated`, `conflicted`, `observed_behavior`인 항목은 어떤 경우에도 `confirmed:true`로 내보내지 않는다.
 - 범위 밖 항목의 ID, 경로, 프로젝트를 출력에 싣지 않는다. 범위 판정은 `src/retrieval/scope.ts`의 `inEffectiveScope` 한 곳에서 정의한다.
-- 결과를 검증 기록이나 증거라고 부르지 않는다. 이 저장소가 돌려주는 것은 근거다.
+- 결과를 검증 기록이나 증거라고 부르지 않는다. 이 저장소가 돌려주는 것은 근거다. `verify`는 참조 무결성 확인이고 임대는 세대 보호 표시다. 둘 다 승인·완료 상태를 담지 않는다.
+- 형식 1 응답(`responseVersion` 생략·`1`)의 출력은 바이트까지 바꾸지 않는다. 새 필드와 정책은 형식 2나 선택 설정으로만 넣고 `tests/compat.test.ts`로 확인한다.
+- 범위 밖 항목은 BM25 통계, `budget.omitted`, `verify`의 후보에도 넣지 않는다.
 - 원본 저장소에는 절대 쓰지 않는다.
 - 해석 규칙을 바꾸면 `src/parsing/versions.ts`의 해당 상수를 올린다. 올리지 않으면 이전 색인이 재사용되어 코드와 색인이 어긋난다. 어떤 상수를 올릴지는 [docs/knowledge-model.md](docs/knowledge-model.md#버전)에 있다.
 - SQLite 스키마를 바꾸면 `src/indexing/schema.ts`의 마이그레이션 배열에 항목을 덧붙이고, 테이블을 더했으면 `REQUIRED_TABLES`에도 적는다.

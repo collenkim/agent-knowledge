@@ -85,6 +85,34 @@ export interface Diagnostic {
   message: string;
 }
 
+export const HTTP_METHODS = ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'TRACE', 'CONNECT'] as const;
+
+/** `PATCH /auth/x`, `GET:/auth/x`처럼 적은 HTTP 작업. 파일 경로가 아니므로 경로 연결이나 적용 경로로 쓰지 않는다. */
+export interface HttpOperation {
+  method: (typeof HTTP_METHODS)[number];
+  path: string;
+  field: 'scope' | 'code' | 'test';
+}
+
+export type InformalSyntax = 'plain' | 'table' | 'ordered-list' | 'quote';
+
+/** 상태 값을 정한 층과, 그 절에 적힌 비공식 상태 표기. 판정에는 쓰지 않고 출력에서 원문을 보존하는 데 쓴다. */
+export interface StatusDeclaration {
+  origin: 'field' | 'informal' | 'ancestor-field' | 'ancestor-informal' | 'frontmatter' | null;
+  informal: { raw: string; normalized: BaseStatus; syntax: InformalSyntax; applied: boolean }[];
+}
+
+/** 긴 항목을 의미 단위로 나눈 조각. 항목 자체는 그대로 두고 검색·발췌 단위로만 쓴다. ID는 `<항목 ID>#<순번>`이고 앵커에는 `#`이 들어가지 않는다. */
+export interface ParsedSegment {
+  ordinal: number;
+  segmentId: string;
+  startLine: number;
+  endLine: number;
+  content: string;
+  contentSha256: string;
+  tokenCount: number;
+}
+
 export interface ParsedItem {
   ordinal: number;
   itemId: string;
@@ -107,4 +135,8 @@ export interface ParsedItem {
   aliases: string[];
   appliesTo: AppliesTo;
   relations: Relations;
+  operations: HttpOperation[];
+  declaration: StatusDeclaration;
+  tokenCount: number;
+  segments: ParsedSegment[];
 }
